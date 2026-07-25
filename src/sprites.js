@@ -1353,6 +1353,74 @@
     return c;
   }
 
+  /* ---- ガレン（黒幕・人型のラスボス） ----
+     まどうしと差別化する：あちらは顔が影で匿名的、こちらは素顔の老人。
+     人間が黒幕であることを一目で伝える。浮遊する「二の輪」を目印にする。 */
+  function eGalen() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 足元に漂う闇
+    for (let i = 0; i < 30; i++) {
+      const a = i * 1.4, r = 20 + (i % 5) * 7;
+      px(g, 48 + Math.round(Math.cos(a) * r), 88 + Math.round(Math.sin(a) * r * 0.22), P.pp0, 4, 2);
+    }
+    // ローブ（黒紫・裾が大きく広がる）
+    tri3(g, 48, 34, 6, 92, 90, 92, P.pp0);
+    tri3(g, 48, 34, 16, 92, 48, 92, P.pp1);
+    tri3(g, 48, 34, 64, 92, 90, 92, '#1c1228');
+    px(g, 6, 88, '#140d1e', 84, 5);
+    for (let i = 0; i < 9; i++) {
+      const x = 12 + i * 9;
+      px(g, x, 58, '#140d1e', 3, 34);
+      px(g, x + 3, 62, P.pp1, 2, 30);
+    }
+    // 胴と襟
+    px(g, 32, 30, P.pp1, 32, 30);
+    px(g, 32, 30, P.pp2, 32, 4);
+    px(g, 56, 34, '#1c1228', 8, 26);
+    tri3(g, 48, 20, 28, 40, 68, 40, P.pp2);        // 立て襟
+    px(g, 44, 40, P.gd2, 8, 22);                   // 前立ての金
+    px(g, 44, 40, P.gd4, 3, 22);
+    // 素顔（老人）
+    disc(g, 48, 20, 12, P.sk1);
+    disc(g, 46, 17, 8, P.sk2);
+    px(g, 40, 17, P.out, 5, 4); px(g, 51, 17, P.out, 5, 4);        // 目
+    px(g, 41, 18, P.gd3, 3, 2); px(g, 52, 18, P.gd3, 3, 2);
+    px(g, 38, 13, P.bn2, 8, 3); px(g, 50, 13, P.bn2, 8, 3);        // 白い眉
+    px(g, 44, 22, P.sk0, 4, 3);                                     // 鼻
+    px(g, 42, 27, P.out, 12, 2);                                    // 口（への字）
+    px(g, 40, 26, P.out, 3, 1); px(g, 53, 26, P.out, 3, 1);
+    px(g, 36, 28, P.bn3, 24, 10);                                   // 白い顎髭
+    px(g, 40, 36, P.bn3, 16, 6);
+    px(g, 36, 28, P.bn4, 12, 3);
+    px(g, 34, 6, P.bn2, 28, 8);                                     // 白髪
+    px(g, 34, 6, P.bn3, 20, 4);
+    px(g, 32, 10, P.bn2, 5, 14); px(g, 59, 10, P.bn2, 5, 14);
+    // 腕を左右に広げる（掌を上に向けた「掲げる」姿勢）
+    px(g, 16, 40, P.pp1, 18, 10); px(g, 62, 40, P.pp1, 18, 10);
+    px(g, 16, 40, P.pp2, 18, 3); px(g, 62, 40, P.pp2, 18, 3);
+    px(g, 10, 44, P.sk1, 10, 8); px(g, 76, 44, P.sk1, 10, 8);
+    px(g, 10, 44, P.sk2, 10, 3); px(g, 76, 44, P.sk2, 10, 3);
+    // 二の輪（掌の上に浮く黒い環）
+    for (const cx of [15, 81]) {
+      for (let a = 0; a < 360; a += 6) {
+        const r = a * Math.PI / 180;
+        px(g, cx + Math.round(Math.cos(r) * 9), 32 + Math.round(Math.sin(r) * 4), P.out, 2, 2);
+      }
+      for (let a = 0; a < 360; a += 12) {
+        const r = a * Math.PI / 180;
+        px(g, cx + Math.round(Math.cos(r) * 9), 32 + Math.round(Math.sin(r) * 4), P.pp4);
+      }
+      disc(g, cx, 32, 3, 'rgba(160,90,220,0.5)');
+    }
+    // 背後に立ちのぼる闇
+    for (let i = 0; i < 16; i++) {
+      const t = i / 15;
+      px(g, 48 + Math.round(Math.sin(t * 9) * 22), 4 + Math.round(t * 26), 'rgba(70,30,110,0.55)', 5, 4);
+    }
+    outline(c, P.out);
+    return c;
+  }
+
   /* =====================================================================
      初期化
      ===================================================================== */
@@ -1395,7 +1463,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
-      serpent: eSerpent(), statue: eStatue(),
+      serpent: eSerpent(), statue: eStatue(), galen: eGalen(),
     };
   };
 })();

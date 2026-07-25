@@ -56,7 +56,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, chests: {}, q: {}, read: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, chests: {}, q: {}, read: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -97,6 +97,21 @@
         G.startEnding();
         G.fx.fadeIn(null, 0.003);
       }, 0.003);
+      return;
+    }
+    if (result === 'truelast') {
+      G.state = 'field';
+      G.field.grace = 3;
+      G.audio.scene(p.map);
+      G.saveGame();
+      G.msg.show([
+        'ガレンは ひざを ついた。',
+        '「……わしは ただ\nちからが ほしかっただけだ」',
+        '「りゅうを ころしたのは\nわしか。それとも おまえか」',
+        'そう いいのこして\nろうじんは くずれおちた。',
+        'てもとに のこった にの わは\nおとを たてて くだけた。',
+        'これで ほんとうに おわった。\n（ぼうけんを きろくした）',
+      ]);
       return;
     }
     if (result === 'midboss') {
@@ -179,6 +194,11 @@
       lines.push('はかもり「あの3人の はかに\nはなを そなえてきた」');
       lines.push('「あの子らが しらべようとした\nことを、おまえが おわらせた。\nそう つたえておいたよ」');
     }
+    // 裏ボスを倒していれば、黒幕の顛末まで語られる
+    if (G.flags.galenDead) {
+      lines.push('とうだいの おくで たおれた\nろうじんの ことは、\nむらには つたえなかった。');
+      lines.push('ただ はかもりだけが\n3つの はかの まえで\nながいこと たっていた。');
+    }
     // 日記を全部読んでいれば、竜の名誉が回復する結末になる
     if (lore) {
       lines.push('のこされた にっきは\nきょうかいに おさめられた。',
@@ -191,6 +211,7 @@
       + '\nあるいた ほすう ' + p.steps
       + '\n' + (lore ? 'にっき ３／３' : 'にっき ' + [G.flags.read.d1, G.flags.read.d2, G.flags.read.d3].filter(Boolean).length + '／３')
       + '　' + (quest ? 'いらい 　たっせい' : 'いらい 　みたっせい')
+      + (G.flags.galenDead ? '\n「くろまくを うった」' : '')
       + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう');
     lines.push('ボタンを おすと\nタイトルに もどります。');
     G.msg.show(lines, function () { G.ending.done = true; });

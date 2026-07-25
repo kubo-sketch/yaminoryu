@@ -170,6 +170,18 @@
       weak: 'fire', resist: 'ice',
       spell: { id: 'hyado', rate: 0.2 },
     },
+    galen: {
+      // 人間の黒幕。属性で押すより、ルカニ＋物理と回復の管理を要求する
+      name: 'ガレン', spr: 'galen', hp: 430, atk: 60, def: 30, exp: 600, gold: 900,
+      scale: 1.06, flee: false, boss: true, truelast: 1,
+      weak: 'thunder', resist: 'ice',
+      spell: { id: 'begirama', rate: 0.3 },
+      rage: {
+        at: 0.5,
+        text: 'ガレンは にの わを かかげた！\nくろい ひかりが あふれだす！',
+        atk: 74, spell: { id: 'raidein', rate: 0.5 },
+      },
+    },
     boss: {
       name: 'やみのりゅう', spr: 'boss', hp: 190, atk: 30, def: 20, exp: 250, gold: 400,
       scale: 1.06, flee: false, boss: true,

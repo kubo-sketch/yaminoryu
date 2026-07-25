@@ -259,10 +259,17 @@
           x: 3, y: 11, spr: 'sage', dir: 0,
           talk: function () {
             const q = G.flags.q;
-            if (q.missing >= 3)
+            if (q.missing >= 3) {
+              // 灯台の手帳を読んでいれば、3人が実験台にされた事実を伝えられる
+              if (G.flags.read.g4)
+                return ['……とうだいで なにを みた。',
+                        'あの子らを ほらあなへ むかわせたのは\nガレンだと いうのか。',
+                        '「ちょうど よい ためしに なる」……\nあの子らは ためされたのか。',
+                        'ゆるさぬ。\nあの おとこを さがしてくれ。'];
               return ['よく もどってきた。',
                       'あの3人は ほらあなの ぬしを\nしらべに いって かえらなかった。',
                       'おまえは かならず かえってこい。'];
+            }
             if (q.missing >= 2) {
               q.missing = 3;
               const p2 = G.player;
@@ -457,9 +464,16 @@
         { x: 5, y: 17, spr: 'inn', dir: 3, act: { type: 'inn' } },
         {
           x: 20, y: 15, spr: 'king', dir: 0,
-          talk: ['わしは この みなとの ふなおさだ。',
-                 'やみのりゅうは ほのおの けもの。\nほのおは きかん。こおりで うて。',
-                 'ヒャドを おぼえておらぬなら\nレベルを あげてから いくのだ。'],
+          talk: function () {
+            if (G.flags.read.g3)
+              return ['とうだいの きろくを みたか。',
+                      'ガレンは 30ねんまえに ながれてきた\nがくしゃだ。うみを わたって な。',
+                      'あの おとこは りゅうの ちからを\n「ひとが つかえるように する」と\nいっておった。',
+                      'わしは とうだいを とじた。\nだが おそかったようだ。'];
+            return ['わしは この みなとの ふなおさだ。',
+                    'やみのりゅうは ほのおの けもの。\nほのおは きかん。こおりで うて。',
+                    'ヒャドを おぼえておらぬなら\nレベルを あげてから いくのだ。'];
+          },
         },
         {
           x: 12, y: 6, spr: 'soldier', dir: 0,
@@ -659,6 +673,7 @@
     const g = new Grid(14, 12, '#');
     g.rect(2, 2, 10, 8, '=');
     g.set(7, 10, '>');                             // 下階へ
+    g.set(7, 1, 'D');                              // 奥へ（竜を倒すまで開かない）
     g.set(3, 3, 'h'); g.set(10, 3, 'h');           // 書棚
     g.set(2, 6, 'a'); g.set(11, 6, 'a');           // 机
     g.set(3, 8, 't'); g.set(10, 8, 't');           // 松明
@@ -669,6 +684,11 @@
       npcs: [],
       events: [
         { x: 7, y: 10, type: 'warp', to: 'tower1', tx: 3, ty: 3, dir: 0 },
+        {
+          x: 7, y: 1, type: 'warp', to: 'tower3', tx: 6, ty: 9, dir: 3,
+          requires: 'bossDead',
+          deny: 'とびらは かたく とざされている。\nおくから かすかに\nひとの けはいが する……',
+        },
         { x: 5, y: 3, type: 'chest', id: 't2', weapon: 5 },
         { x: 8, y: 3, type: 'chest', id: 't3', armor: 5 },
         {
@@ -695,6 +715,45 @@
     };
   }
 
+  /* =====================================================================
+     とうだいの おくのま — 竜を倒したあとにだけ入れる（裏ボス）
+     ===================================================================== */
+  function buildTower3() {
+    const g = new Grid(13, 11, '#');
+    g.rect(2, 2, 9, 8, '=');
+    g.set(6, 10, 'D');                             // 最上階へ戻る
+    g.set(2, 2, 't'); g.set(10, 2, 't');
+    g.set(2, 9, 't'); g.set(10, 9, 't');
+    g.set(3, 3, 'h'); g.set(9, 3, 'h');
+    g.set(5, 8, 'c'); g.set(6, 8, 'c'); g.set(7, 8, 'c');
+    return {
+      id: 'tower3', name: 'とうだいの おくのま', rows: g.rows(),
+      enc: null, indoor: true,
+      npcs: [],
+      events: [
+        { x: 6, y: 10, type: 'warp', to: 'tower2', tx: 7, ty: 2, dir: 0 },
+        {
+          x: 6, y: 4, type: 'boss', id: 'galen', enemy: 'galen', flag: 'galenDead',
+          intro: 'おくのまに ひとりの ろうじんが\nたっていた。\n\n'
+               + '「……りゅうを ころしたのは\nおまえか」',
+        },
+        {
+          x: 6, y: 5, type: 'boss', id: 'galen', enemy: 'galen', flag: 'galenDead',
+          intro: 'おくのまに ひとりの ろうじんが\nたっていた。\n\n'
+               + '「……りゅうを ころしたのは\nおまえか」',
+        },
+        {
+          x: 3, y: 6, type: 'read', id: 'g5',
+          text: 'つくえに のこされた しょめん――\n\n'
+              + '「にの わは かんせいした。\n'
+              + 'こんどは りゅうでは ない。\n'
+              + 'ひとに はめる」',
+          again: 'つくえに のこされた しょめん。',
+        },
+      ],
+    };
+  }
+
   G.buildMaps = function () {
     G.MAPS = {
       town: buildTown(),
@@ -704,6 +763,7 @@
       cave2: buildCave2(),
       tower1: buildTower1(),
       tower2: buildTower2(),
+      tower3: buildTower3(),
     };
     // 幅の検証（構造上ズレないはずだが、編集ミスを早期に出す）
     Object.keys(G.MAPS).forEach(function (k) {

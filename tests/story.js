@@ -111,5 +111,40 @@ else ok('未達成：通常エンド');
 if (!b.lore || !b.quest) fail('全部やっても分岐が立たない');
 else ok('全達成：真相＋後日談エンド');
 
+/* ---- 裏ボスの解放条件 ---- */
+console.log('\n=== 裏ボス ガレン ===');
+const t2 = G.MAPS.tower2, t3 = G.MAPS.tower3;
+if (!t3) fail('とうだいの おくのま(tower3)が無い');
+else {
+  const gate = (t2.events || []).find((e) => e.to === 'tower3');
+  if (!gate) fail('最上階から奥の間への通路が無い');
+  else if (gate.requires !== 'bossDead') fail('竜を倒す前に裏ボスへ行けてしまう');
+  else ok('竜を倒すまで奥の間は開かない');
+  const gb = (t3.events || []).filter((e) => e.type === 'boss');
+  if (!gb.length) fail('奥の間にガレンが配置されていない');
+  else if (gb.some((e) => e.flag !== 'galenDead')) fail('ガレンの撃破フラグが正しくない');
+  else ok(`ガレン戦の起動点 ${gb.length} か所`);
+  const def = G.ENEMIES.galen;
+  if (!def) fail('ガレンのデータが無い');
+  else if (!def.truelast) fail('ガレンに truelast 指定が無い（真エンド分岐が動かない）');
+  else if (!def.rage) fail('ガレンに形態変化が無い');
+  else ok(`ガレン HP${def.hp} こうげき${def.atk}→${def.rage.atk}（形態変化あり）`);
+}
+
+/* ---- 灯台の発見が町の会話に反映されるか ---- */
+console.log('\n=== 発見の持ち帰り ===');
+G.flags.read = {}; G.flags.q = { missing: 3 };
+const before = JSON.stringify(keeper.talk());
+G.flags.read.g4 = 1;
+const after = JSON.stringify(keeper.talk());
+if (before === after) fail('灯台の手帳を読んでも墓守の話が変わらない');
+else ok('墓守：灯台の手帳を読むと話が変わる');
+const capt = G.MAPS.port.npcs.find((n) => n.spr === 'king');
+G.flags.read = {};
+const b2 = JSON.stringify(capt.talk());
+G.flags.read.g3 = 1;
+if (b2 === JSON.stringify(capt.talk())) fail('研究日誌を読んでも船長の話が変わらない');
+else ok('船長：研究日誌を読むと話が変わる');
+
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);
