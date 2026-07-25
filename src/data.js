@@ -246,6 +246,7 @@
       name: 'うごくせきぞう', spr: 'statue', hp: 70, atk: 32, def: 32, exp: 45, gold: 60,
       scale: 0.98, flee: true, max: 2,
       weak: 'thunder', resist: 'fire',
+      paralyze: 0.2,                                 // いしの まなざし
     },
     wolf: {
       name: 'やまいぬ', spr: 'wolf', hp: 34, atk: 24, def: 11, exp: 22, gold: 26,
@@ -264,6 +265,7 @@
       scale: 0.98, flee: true, max: 2,
       weak: 'thunder', resist: 'fire',
       spell: { id: 'begirama', rate: 0.3 },
+      paralyze: 0.2,                                 // 亡霊の冷気
     },
     // 谷の主。初代の竜。Lv20前後を想定した真のラスボス
     elderdragon: {
@@ -389,6 +391,8 @@
   /* ---------------- 状態異常「どく」 ----------------
      戦闘中は毎ターン、フィールドでは数歩ごとにHPが減る。
      フィールドでは死なない（HP1で止まる）＝理不尽な即死を作らない。 */
+  G.PARALYZE = { turns: [2, 4] };                  // まひの継続ターン（下限〜上限）
+
   G.POISON = {
     battleDamage: function (maxhp) { return Math.max(2, Math.floor(maxhp * 0.06)); },
     stepInterval: 6,                                 // この歩数ごとに1回

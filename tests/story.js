@@ -309,5 +309,28 @@ console.log('\n=== 成長 ===');
   else ok(`呪文の習得 ${learned} 回（最後は Lv${L.map((d,i)=>d.learn?i+1:0).filter(Boolean).pop()}）`);
 }
 
+/* ---- 状態異常 ---- */
+console.log('\n=== 状態異常 ===');
+{
+  const par = Object.keys(G.ENEMIES).filter((k) => G.ENEMIES[k].paralyze);
+  if (!par.length) fail('まひを与える敵がいない');
+  else ok('まひを持つ敵: ' + par.map((k) => G.ENEMIES[k].name).join('・'));
+  if (!G.PARALYZE) fail('まひの継続ターンが未定義');
+  else {
+    const [lo, hi] = G.PARALYZE.turns;
+    if (lo < 1 || hi > 5) fail(`まひの長さが極端（${lo}〜${hi}ターン）`);
+    else ok(`まひ ${lo}〜${hi}ターン`);
+  }
+  // まひ役の敵が実際に出現するか
+  const inTable = Object.keys(G.ENC).some((k) => G.ENC[k].table.some((e) => G.ENEMIES[e].paralyze));
+  if (!inTable) fail('まひを持つ敵が出現テーブルに載っていない');
+  else ok('まひを持つ敵が出現テーブルに載っている');
+  // 全員まひでも進行が止まらないこと（battle.js 側の分岐を確認）
+  const bsrc = fs.readFileSync(path.join(ROOT, 'battle.js'), 'utf8');
+  if (bsrc.indexOf('if (!ready.length && this.aliveMembers().length)') < 0)
+    fail('全員まひのときに敵ターンへ進む処理が無い（進行不能になる）');
+  else ok('全員まひでも敵のターンへ進む');
+}
+
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);

@@ -56,7 +56,7 @@
       this.actor = 0;                                // いま入力しているメンバー
       this.orders = [];                              // 各メンバーの行動予約
       G.party = G.party || [G.player];
-      G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; });
+      G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; m.para = 0; });
       this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
       this.intro = 1;                                // 1→0 で敵がせり上がる
       G.state = 'battle';
@@ -105,7 +105,9 @@
     cur: function () { return this.members()[this.actor] || G.player; },
     nextAliveActor: function (from) {
       const ms = this.members();
-      for (let i = from + 1; i < ms.length; i++) if (ms[i].alive !== false && ms[i].hp > 0) return i;
+      // まひしている者は入力を飛ばす（そのターンは動けない）
+      for (let i = from + 1; i < ms.length; i++)
+        if (ms[i].alive !== false && ms[i].hp > 0 && !ms[i].para) return i;
       return -1;
     },
     prevAliveActor: function (from) {
@@ -171,8 +173,16 @@
       this.poisonDone = 0;
       this.members().forEach(function (m) { m.defending = false; });
       this.orders = [];
-      const first = this.aliveMembers().length ? this.members().indexOf(this.aliveMembers()[0]) : 0;
-      this.actor = first;
+      // まひが1ターン進む。全員まひなら入力を飛ばして敵のターンへ
+      const ms = this.members();
+      ms.forEach(function (m) { if (m.para > 0) m.para--; });
+      const ready = ms.filter(function (m) { return m.alive !== false && m.hp > 0 && !m.para; });
+      if (!ready.length && this.aliveMembers().length) {
+        this.orders = [];
+        this.execTurn();
+        return;
+      }
+      this.actor = ms.indexOf(ready[0]);
       this.phase = 'command';
       this.cmd = 0;
       this.pickTarget();
@@ -476,6 +486,13 @@
             G.fx.flash('#e03c2c', 240); G.fx.shake(7, 280);
             // 毒を持つ敵は、当てたときに一定確率で毒にする
             let ptxt = '';
+            if (cur.paralyze && !p.para && Math.random() < cur.paralyze) {
+              const r = G.PARALYZE.turns;
+              p.para = r[0] + G.rnd(r[1] - r[0] + 1);
+              G.fx.flash('#d8d0ff', 260);
+              self.popAlly(p, 'まひ', '#d8d0ff');
+              ptxt += '\n' + p.name + 'は しびれて うごけない！';
+            }
             if (cur.poison && !p.poison && Math.random() < cur.poison) {
               p.poison = 1;
               G.fx.flash('#8fd07f', 260);
@@ -919,7 +936,8 @@
         });
         if (on) G.cursor(18, y);
         if (dead) { G.text('たおれている', 200, y, { size: 15, align: 'right', color: '#a4705c' }); return; }
-        if (m.poison) G.text('どく', 200, y - 2, { size: 14, align: 'right', color: '#8fd07f' });
+        if (m.para) G.text('まひ', 200, y - 2, { size: 14, align: 'right', color: '#d8d0ff' });
+        else if (m.poison) G.text('どく', 200, y - 2, { size: 14, align: 'right', color: '#8fd07f' });
         // HP/MP バー
         const bw = 176;
         G.ctx.fillStyle = '#2a1c1c'; G.ctx.fillRect(30, y + 22, bw, 7);
