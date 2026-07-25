@@ -320,8 +320,11 @@ function grind(trials) {
       if (r.win) {
         p.exp += ENEMIES[id].exp; p.gold += ENEMIES[id].gold; p.kills++;   // 1体ぶんで控えめに見積もる
       } else if (!r.fled) {
+        // 死んだら宿で全快して再開する（alive を戻さないと以後ずっと即敗北になる）
         deaths++; p.gold = Math.floor(p.gold / 2);
+        p.alive = true; p.hp = p.maxhp; p.mp = p.maxmp;
       }
+      p.alive = true;
       // レベルアップ
       while (p.lv < LEVELS.length && p.exp >= LEVELS[p.lv].exp) {
         p.lv++;
@@ -332,6 +335,7 @@ function grind(trials) {
       }
       // 宿に戻って全快（HP3割以下 or やくそう切れ）
       if (p.hp < p.maxhp * 0.3 || !p.items.yakusou) {
+        p.alive = true;
         if (p.gold >= 6) { p.gold -= 6; p.hp = p.maxhp; p.mp = p.maxmp; }
         else { p.hp = p.maxhp; p.mp = p.maxmp; }
         // やくそう補充（12G）
