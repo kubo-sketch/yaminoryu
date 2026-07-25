@@ -10,7 +10,8 @@
 
   const AC = window.AudioContext || window.webkitAudioContext;
   let ac = null, master = null, bgmGain = null, seGain = null;
-  let noiseBuf = null;
+  let noiseBuf = null, delayNode = null, delayFb = null, delayWet = null;
+  const waveCache = {};
 
   const NOTES = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
   function freq(name) {
@@ -27,37 +28,63 @@
     });
   }
 
-  /* ---------------- 曲データ（8分音符 = 1単位） ---------------- */
+  /* ---------------- 曲データ（8分音符 = 1単位） ----------------
+     声部を mel（主旋律）/ harm（副旋律）/ arp（分散和音）/ bass の4つに分け、
+     ドラムとディレイを足す。2声だと8bit期の響きから抜けられない。   */
   const TUNES = {
     town: {
-      bpm: 100, wave: 'triangle', vol: 1,
-      mel: 'E4:2 G4:2 A4:2 G4:2 E4:2 D4:2 C4:4 D4:2 E4:2 F4:2 E4:2 D4:4 G3:4',
+      bpm: 104, vol: 1, delay: 0.30, fb: 0.30,
+      mel:  'E4:2 G4:2 A4:2 G4:2 E4:2 D4:2 C4:4 D4:2 E4:2 F4:2 E4:2 D4:4 G3:4',
+      harm: 'C4:2 E4:2 F4:2 E4:2 C4:2 B3:2 A3:4 B3:2 C4:2 A3:2 G3:2 B3:4 D3:4',
+      arp:  'C4 E4 G4 E4 C4 E4 G4 E4 G3 B3 D4 B3 G3 B3 D4 B3 '
+          + 'F3 A3 C4 A3 F3 A3 C4 A3 C4 E4 G4 E4 C4 E4 G4 E4',
       bass: 'C3:4 C3:4 G2:4 G2:4 F2:4 F2:4 C3:4 C3:4',
+      wave: 'pulse25', harmWave: 'pulse12', arpWave: 'triangle',
     },
     field: {
-      bpm: 132, wave: 'square', vol: 0.9,
-      mel: 'C4:2 C4:2 D4:2 E4:2 F4:2 E4:2 D4:2 C4:2 G4:2 G4:2 A4:2 G4:2 F4:2 E4:2 D4:4',
+      bpm: 138, vol: 0.95, delay: 0.24, fb: 0.26, drum: 1,
+      mel:  'C4:2 C4:2 D4:2 E4:2 F4:2 E4:2 D4:2 C4:2 G4:2 G4:2 A4:2 G4:2 F4:2 E4:2 D4:4',
+      harm: 'E3:2 E3:2 F3:2 G3:2 A3:2 G3:2 F3:2 E3:2 B3:2 B3:2 C4:2 B3:2 A3:2 G3:2 F3:4',
+      arp:  'C3 G3 C4 G3 C3 G3 C4 G3 F3 C4 F4 C4 F3 C4 F4 C4 '
+          + 'G3 D4 G4 D4 G3 D4 G4 D4 C3 G3 C4 G3 C3 G3 C4 G3',
       bass: 'C3:2 G3:2 C3:2 G3:2 F3:2 C4:2 F3:2 C4:2 G3:2 D4:2 G3:2 D4:2 C3:2 G3:2 C3:4',
+      wave: 'pulse25', harmWave: 'pulse12', arpWave: 'triangle',
     },
     cave: {
-      bpm: 88, wave: 'triangle', vol: 0.85,
-      mel: 'A3:4 C4:2 B3:2 A3:4 E3:4 F3:4 E3:2 D3:2 C3:4 E3:4',
+      bpm: 92, vol: 0.9, delay: 0.42, fb: 0.42,
+      mel:  'A3:4 C4:2 B3:2 A3:4 E3:4 F3:4 E3:2 D3:2 C3:4 E3:4',
+      harm: 'E3:4 A3:2 G3:2 E3:4 B2:4 C3:4 B2:2 A2:2 G2:4 B2:4',
+      arp:  'A2 E3 A3 E3 A2 E3 A3 E3 E2 B2 E3 B2 E2 B2 E3 B2 '
+          + 'F2 C3 F3 C3 F2 C3 F3 C3 A2 E3 A3 E3 A2 E3 A3 E3',
       bass: 'A2:4 A2:4 E2:4 E2:4 F2:4 F2:4 A2:4 A2:4',
+      wave: 'triangle', harmWave: 'pulse12', arpWave: 'sine',
     },
     battle: {
-      bpm: 162, wave: 'square', vol: 0.95, drum: 1,
-      mel: 'A4:1 A4:1 C5:2 A4:1 A4:1 E5:2 A4:1 A4:1 C5:2 D5:1 C5:1 A4:2 G4:2 A4:2 C5:2 E5:2',
+      bpm: 168, vol: 1, delay: 0.18, fb: 0.22, drum: 2,
+      mel:  'A4:1 A4:1 C5:2 A4:1 A4:1 E5:2 A4:1 A4:1 C5:2 D5:1 C5:1 A4:2 G4:2 A4:2 C5:2 E5:2',
+      harm: 'E4:1 E4:1 A4:2 E4:1 E4:1 C5:2 E4:1 E4:1 A4:2 F4:1 E4:1 C4:2 D4:2 E4:2 A4:2 C5:2',
+      arp:  'A3 C4 E4 C4 A3 C4 E4 C4 A3 C4 E4 C4 A3 C4 E4 C4 '
+          + 'F3 A3 C4 A3 F3 A3 C4 A3 G3 B3 D4 B3 E3 G3 B3 G3',
       bass: 'A2:2 A2:2 A2:2 A2:2 F2:2 F2:2 G2:2 G2:2 A2:2 A2:2 E2:2 E2:2',
+      wave: 'pulse25', harmWave: 'pulse12', arpWave: 'sawtooth',
     },
     boss: {
-      bpm: 138, wave: 'sawtooth', vol: 0.8, drum: 1,
-      mel: 'D4:2 D4:2 F4:2 A4:2 G4:4 F4:4 E4:2 E4:2 G4:2 C5:2 A4:4 D4:4',
+      bpm: 144, vol: 0.9, delay: 0.22, fb: 0.30, drum: 2,
+      mel:  'D4:2 D4:2 F4:2 A4:2 G4:4 F4:4 E4:2 E4:2 G4:2 C5:2 A4:4 D4:4',
+      harm: 'A3:2 A3:2 D4:2 F4:2 D4:4 C4:4 C4:2 C4:2 E4:2 G4:2 F4:4 A3:4',
+      arp:  'D3 F3 A3 F3 D3 F3 A3 F3 D3 F3 A3 F3 D3 F3 A3 F3 '
+          + 'A#2 D3 F3 D3 A#2 D3 F3 D3 C3 E3 G3 E3 D3 F3 A3 F3',
       bass: 'D2:4 D2:4 A#2:4 A#2:4 C3:4 C3:4 D2:4 D2:4',
+      wave: 'sawtooth', harmWave: 'pulse25', arpWave: 'triangle',
     },
     ending: {
-      bpm: 84, wave: 'triangle', vol: 1,
-      mel: 'G4:2 A4:2 B4:4 A4:2 G4:2 E4:4 D4:2 E4:2 G4:4 E4:4 D4:4',
+      bpm: 88, vol: 1, delay: 0.36, fb: 0.34,
+      mel:  'G4:2 A4:2 B4:4 A4:2 G4:2 E4:4 D4:2 E4:2 G4:4 E4:4 D4:4',
+      harm: 'B3:2 C4:2 D4:4 C4:2 B3:2 G3:4 B3:2 C4:2 B3:4 G3:4 B3:4',
+      arp:  'G3 B3 D4 B3 G3 B3 D4 B3 C4 E4 G4 E4 C4 E4 G4 E4 '
+          + 'D4 F#4 A4 F#4 D4 F#4 A4 F#4 G3 B3 D4 B3 G3 B3 D4 B3',
       bass: 'G2:4 G2:4 C3:4 C3:4 D3:4 D3:4 G2:4 G2:4',
+      wave: 'triangle', harmWave: 'sine', arpWave: 'triangle',
     },
   };
 
@@ -75,17 +102,49 @@
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // ディレイ（SFC期の曲は残響で厚く聞こえる。これが無いと素の矩形波に戻る）
+    delayNode = ac.createDelay(1.2);
+    delayNode.delayTime.value = 0.28;
+    delayFb = ac.createGain(); delayFb.gain.value = 0.3;
+    delayWet = ac.createGain(); delayWet.gain.value = 0.38;
+    delayNode.connect(delayFb); delayFb.connect(delayNode);
+    delayNode.connect(delayWet); delayWet.connect(master);
+    bgmGain.connect(delayNode);
     return true;
   }
 
-  function tone(f, t, dur, gain, wave, dest) {
+  // デューティ比を変えた矩形波。25%/12.5% はファミコン〜SFCの定番音色
+  function pulseWave(duty) {
+    const key = 'p' + duty;
+    if (waveCache[key]) return waveCache[key];
+    const n = 24;
+    const real = new Float32Array(n), imag = new Float32Array(n);
+    for (let i = 1; i < n; i++) imag[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * duty);
+    waveCache[key] = ac.createPeriodicWave(real, imag);
+    return waveCache[key];
+  }
+  function setWave(o, wave) {
+    if (wave === 'pulse25') o.setPeriodicWave(pulseWave(0.25));
+    else if (wave === 'pulse12') o.setPeriodicWave(pulseWave(0.125));
+    else o.type = wave || 'square';
+  }
+
+  function tone(f, t, dur, gain, wave, dest, vib) {
     if (!f) return;
     const o = ac.createOscillator(), g = ac.createGain();
-    o.type = wave || 'square';
+    setWave(o, wave);
     o.frequency.setValueAtTime(f, t);
+    // 長い音にはビブラートをかけて、のっぺりした持続音を避ける
+    if (vib && dur > 0.35) {
+      const lfo = ac.createOscillator(), lg = ac.createGain();
+      lfo.frequency.value = 5.4; lg.gain.value = f * 0.011;
+      lfo.connect(lg); lg.connect(o.frequency);
+      lfo.start(t + 0.18); lfo.stop(t + dur + 0.02);
+      nodes.push(lfo);
+    }
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(gain, t + 0.012);
-    g.gain.setValueAtTime(gain, t + dur * 0.65);
+    g.gain.setValueAtTime(gain, t + dur * 0.62);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest || seGain);
     o.start(t); o.stop(t + dur + 0.03);
@@ -175,28 +234,39 @@
     const tn = TUNES[curTune];
     const unit = 60 / tn.bpm / 2;             // 8分音符の秒数
     const t0 = ac.currentTime + 0.06;
-    let total = 0;
+    const V = tn.vol || 1;
 
-    parse(tn.mel).forEach(function (n) {
-      const dur = n.len * unit;
-      if (n.f) tone(n.f, t0 + total, dur * 0.92, 0.55 * (tn.vol || 1), tn.wave, bgmGain);
-      total += dur;
-    });
-    let bt = 0;
-    parse(tn.bass).forEach(function (n) {
-      const dur = n.len * unit;
-      if (n.f) tone(n.f, t0 + bt, dur * 0.9, 0.42 * (tn.vol || 1), 'triangle', bgmGain);
-      bt += dur;
-    });
+    if (delayNode) {
+      delayNode.delayTime.value = tn.delay || 0.28;
+      delayFb.gain.value = tn.fb || 0.3;
+    }
+
+    // 声部をまとめて流す
+    function lay(str, gain, wave, mul, vib) {
+      if (!str) return 0;
+      let at = 0;
+      parse(str).forEach(function (n) {
+        const dur = n.len * unit * (mul || 1);
+        if (n.f) tone(n.f, t0 + at, dur * 0.92, gain * V, wave, bgmGain, vib);
+        at += dur;
+      });
+      return at;
+    }
+    const tMel = lay(tn.mel, 0.50, tn.wave, 1, true);
+    lay(tn.harm, 0.26, tn.harmWave, 1, false);
+    lay(tn.arp, 0.15, tn.arpWave, 0.5, false);   // アルペジオは16分で流す
+    const tBass = lay(tn.bass, 0.42, 'triangle', 1, false);
+
+    const total = Math.max(tMel, tBass);
     if (tn.drum) {
       for (let i = 0; i * unit * 2 < total; i++) {
         const t = t0 + i * unit * 2;
-        sweep(150, 50, t, 0.09, 0.5, 'square', bgmGain);
-        noise(t + unit, 0.05, 0.18, 3000, bgmGain);
+        sweep(160, 48, t, 0.10, 0.55, 'square', bgmGain);          // キック
+        noise(t + unit, 0.06, 0.20, 3200, bgmGain);                // ハイハット
+        if (tn.drum > 1 && i % 2 === 1) noise(t, 0.09, 0.26, 1400, bgmGain);  // スネア
       }
     }
-    const loopMs = Math.max(total, bt) * 1000;
-    loopTimer = setTimeout(scheduleTune, loopMs - 40);
+    loopTimer = setTimeout(scheduleTune, total * 1000 - 40);
   }
 
   /* ---------------- 公開API ---------------- */

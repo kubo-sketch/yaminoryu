@@ -265,7 +265,7 @@ console.log('     ' + charNames.join(' / ') + '（各行=1キャラ／下左右�
 /* --- 敵 --- */
 const enemyNames = Object.keys(G.ENEMY);
 sheet('03_enemies.png', enemyNames.map((k) => G.ENEMY[k]),
-  { scale: 3, cols: 3, cell: 64, bg: '#101a2e' });
+  { scale: 3, cols: 3, cell: 96, bg: '#101a2e' });
 console.log('     ' + enemyNames.join(' / '));
 
 /* =====================================================================

@@ -74,7 +74,7 @@ let pendingTimers = [];
 let clock = 0;
 
 /* ---------------- ロード ---------------- */
-const FILES = ['sprites.js', 'data.js', 'maps.js', 'engine.js', 'audio.js', 'field.js', 'battle.js', 'ui.js', 'main.js'];
+const FILES = ['sprites.js', 'data.js', 'maps.js', 'engine.js', 'audio.js', 'cutscene.js', 'field.js', 'battle.js', 'ui.js', 'main.js'];
 FILES.forEach((f) => {
   try {
     new Function(fs.readFileSync(path.join(ROOT, f), 'utf8'))();
@@ -143,10 +143,12 @@ step('fade', 400);
 if (G.state !== 'field') { console.log('✗ field に入れていない: state=' + G.state); errors++; }
 else ok('フィールドへ遷移');
 
-console.log('\n--- 冒頭メッセージを送る ---');
-for (let i = 0; i < 40; i++) { tap('ok', 6); }
-if (G.msg.active) console.log('  （メッセージ継続中）');
-ok('メッセージ送り');
+console.log('\n--- 冒頭の演出（カメラ移動つき）を送る ---');
+for (let i = 0; i < 120 && (G.cut.active || G.msg.active); i++) tap('ok', 10);
+if (G.cut.active) { console.log('✗ 演出が終わらない'); errors++; }
+if (G.field.busy) { console.log('✗ 演出後に操作不能のまま'); errors++; }
+if (G.field.camOverride) { console.log('✗ カメラがプレイヤーに戻っていない'); errors++; }
+ok('オープニング演出');
 
 console.log('\n--- 歩行（各方向） ---');
 ['down', 'left', 'right', 'up'].forEach((d) => {

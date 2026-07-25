@@ -127,39 +127,39 @@
   G.ENEMIES = {
     slime: {
       name: 'スライム', spr: 'slime', hp: 7, atk: 6, def: 3, exp: 2, gold: 4,
-      scale: 1.04, flee: true, max: 3,
+      scale: 0.72, flee: true, max: 3,
       weak: 'ice',                                   // 水っぽいので氷に弱い
     },
     bat: {
       name: 'おおコウモリ', spr: 'bat', hp: 11, atk: 9, def: 4, exp: 4, gold: 7,
-      scale: 1.15, flee: true, agi: 1.3, max: 3,
+      scale: 0.80, flee: true, agi: 1.3, max: 3,
       weak: 'thunder', resist: 'ice',
     },
     goblin: {
       name: 'ゴブリン', spr: 'goblin', hp: 18, atk: 14, def: 7, exp: 9, gold: 13,
-      scale: 1.28, flee: true, max: 2,
+      scale: 0.88, flee: true, max: 2,
       weak: 'fire',
     },
     skeleton: {
       name: 'がいこつへい', spr: 'skeleton', hp: 28, atk: 21, def: 12, exp: 18, gold: 30,
-      scale: 1.36, flee: true, max: 2,
+      scale: 0.94, flee: true, max: 2,
       weak: 'fire', resist: 'ice',
     },
     mage: {
       name: 'やみのまどうし', spr: 'mage', hp: 24, atk: 15, def: 9, exp: 24, gold: 40,
-      scale: 1.40, flee: true, max: 2, spell: { id: 'mera', rate: 0.45 },
+      scale: 0.96, flee: true, max: 2, spell: { id: 'mera', rate: 0.45 },
       weak: 'thunder', resist: 'fire',
     },
     // 中ボス。洞窟1Fの奥を守っていて、倒すと2Fへの鍵を落とす
     gatekeeper: {
       name: 'もんばんの がいこつ', spr: 'skeleton', hp: 118, atk: 32, def: 17, exp: 70, gold: 120,
-      scale: 1.9, flee: false, boss: true, midboss: 1,
+      scale: 1.06, flee: false, boss: true, midboss: 1,
       weak: 'fire', resist: 'ice',
       spell: { id: 'hyado', rate: 0.2 },
     },
     boss: {
       name: 'やみのりゅう', spr: 'boss', hp: 190, atk: 30, def: 20, exp: 250, gold: 400,
-      scale: 1.54, flee: false, boss: true,
+      scale: 1.06, flee: false, boss: true,
       resist: 'fire', weak: 'ice',                   // 炎の竜なので氷が効く
       spell: { id: 'begirama', rate: 0.25 },
       breath: 0.2,                                   // ほのおのいき（しゅび力を無視）

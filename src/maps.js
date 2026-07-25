@@ -427,8 +427,8 @@
         { x: 16, y: 11, type: 'chest', id: 'c2', armor: 3 },
         { x: 13, y: 2, type: 'chest', id: 'c4', gold: 250 },
         // 広間の入口を踏むとボス戦
-        { x: 9, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead' },
-        { x: 10, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead' },
+        { x: 9, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead', scene: 'boss' },
+        { x: 10, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead', scene: 'boss' },
       ],
     };
   }

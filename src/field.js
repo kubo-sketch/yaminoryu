@@ -57,23 +57,33 @@
     },
 
     /* ---------------- カメラ ---------------- */
+    camOverride: null,          // 演出中はここを見る（cutscene.js が入れる）
+    clampCam: function (cx, cy) {
+      const T = G.T, m = this.map;
+      const maxX = m.w * T - G.W, maxY = m.h * T - G.H;
+      return {
+        x: maxX <= 0 ? maxX / 2 : G.clamp(cx, 0, maxX),
+        y: maxY <= 0 ? maxY / 2 : G.clamp(cy, 0, maxY),
+      };
+    },
     updateCam: function (snap) {
-      const p = G.player, T = G.T, m = this.map;
+      const p = G.player, T = G.T;
       let tx = p.x * T + (p.moving ? DX[p.dir] * T * (p.moveT / MOVE_MS) : 0);
       let ty = p.y * T + (p.moving ? DY[p.dir] * T * (p.moveT / MOVE_MS) : 0);
       p.rx = tx; p.ry = ty;                       // 描画用の実座標
-      let cx = tx + T / 2 - G.W / 2;
-      let cy = ty + T / 2 - G.H / 2;
-      const maxX = m.w * T - G.W, maxY = m.h * T - G.H;
-      cx = maxX <= 0 ? maxX / 2 : G.clamp(cx, 0, maxX);
-      cy = maxY <= 0 ? maxY / 2 : G.clamp(cy, 0, maxY);
-      this.cam.x = cx; this.cam.y = cy;
+      if (this.camOverride) {
+        this.cam.x = this.camOverride.x; this.cam.y = this.camOverride.y;
+        return;
+      }
+      const c = this.clampCam(tx + T / 2 - G.W / 2, ty + T / 2 - G.H / 2);
+      this.cam.x = c.x; this.cam.y = c.y;
     },
 
     /* ---------------- 毎フレーム ---------------- */
     update: function (dt) {
       const p = G.player;
 
+      if (G.cut.active) { G.cut.update(dt); this.updateCam(); return; }
       if (G.msg.active) { G.msg.update(dt); this.updateCam(); return; }
       // 確認ダイアログ（やどやの「とまりますか？」など）はフィールド上に出る
       if (G.modal.active) { G.modal.update(); this.updateCam(); return; }
@@ -137,10 +147,9 @@
         if (ev.type === 'boss' && !G.flags[ev.flag || 'bossDead']) {
           this.busy = true;
           const self = this;
-          G.msg.show([ev.intro || 'ずしり――\nつめたい かぜが ふきぬけた。'], function () {
-            self.busy = false;
-            G.startBattle(ev.enemy, true);
-          });
+          const go = function () { self.busy = false; G.startBattle(ev.enemy, true); };
+          if (ev.scene === 'boss') { G.sceneBoss(go); return true; }
+          G.msg.show([ev.intro || 'ずしり――\nつめたい かぜが ふきぬけた。'], function () { go(); });
           return true;
         }
       }
@@ -410,11 +419,8 @@
         'きたの ほらあなに\n「やみのりゅう」が すみついた。',
         'あれが めをさましてから\nまものが ふえて こまっている。',
         'たのむ。\nあの りゅうを たおしてくれ。',
-        'ほらあなの ふういんを といた。\nきたへ すすめば たどりつく。',
-        'ゆけ。ぶじを いのっている。\n（ここまでの ぼうけんを きろくした）',
       ], function () {
-        G.saveGame();
-        G.audio.se('levelup');
+        G.sceneElder(function () { G.saveGame(); G.audio.se('levelup'); });
       });
       return;
     }

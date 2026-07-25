@@ -35,7 +35,7 @@
     enemies: [], isBoss: false, canFlee: true,
     phase: 'msg',        // msg | command | spell | item | target | anim | over
     cmd: 0, sub: 0, subList: [], target: 0, pendingSpell: null,
-    queue: [], pops: [], efx: [], defending: false, hitstop: 0,
+    queue: [], pops: [], efx: [], defending: false, hitstop: 0, intro: 0,
 
     /* ---------------- 開始 ---------------- */
     start: function (enemyId, isBoss) {
@@ -55,6 +55,7 @@
       this.cmd = 0; this.sub = 0; this.target = 0;
       this.defending = false;
       this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
+      this.intro = 1;                                // 1→0 で敵がせり上がる
       G.state = 'battle';
       G.audio.se('encounter');
       G.audio.scene(null, isBoss ? 'boss' : 'battle');
@@ -393,6 +394,7 @@
     update: function (dt) {
       // ヒットストップ：当たった瞬間だけ時間を止めて打撃感を出す
       if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
+      if (this.intro > 0) this.intro = Math.max(0, this.intro - dt / 460);
       for (let i = this.efx.length - 1; i >= 0; i--) {
         this.efx[i].t += dt;
         if (this.efx[i].t > this.efx[i].dur) this.efx.splice(i, 1);
@@ -590,8 +592,10 @@
         let ex = self.slotX(i) - w / 2;
         let ey = 400 - h + Math.sin(e.bob) * 3;             // 待機の揺れ
         if (e.lunge > 0) ey += Math.sin((1 - e.lunge / 200) * Math.PI) * 14;
+        ey += self.intro * 46;                              // 登場：下からせり上がる
         c.save();
         if (!e.alive) c.globalAlpha = e.fade;
+        else if (self.intro > 0) c.globalAlpha = 1 - self.intro;
         // 影
         c.fillStyle = 'rgba(0,0,0,0.35)';
         c.beginPath();
