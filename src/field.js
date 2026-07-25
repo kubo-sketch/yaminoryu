@@ -375,8 +375,9 @@
         c.fillRect(0, 0, G.W, G.H);
       }
 
-      // 天候（マップの weather 指定）。空気の density を変えて場所の性格を出す
-      if (m.weather === 'rain') {
+      // 天候。関数を許して、物語の進行で空気を変えられるようにする
+      const wx = typeof m.weather === 'function' ? m.weather() : m.weather;
+      if (wx === 'rain') {
         c.strokeStyle = 'rgba(150,180,225,0.42)';
         c.lineWidth = 2;
         for (let i = 0; i < 70; i++) {
@@ -397,7 +398,7 @@
           const r = t * 7;
           if (t < 0.55) { c.fillRect(x - r, y, r * 2, 1); }
         }
-      } else if (m.weather === 'fog') {
+      } else if (wx === 'fog') {
         for (let i = 0; i < 7; i++) {
           const w = 460 + i * 70, h = 130 + (i % 3) * 50;
           const x = ((G.time * (0.020 + i * 0.004) + i * 430) % (G.W + w * 2)) - w;

@@ -1493,6 +1493,53 @@
     return c;
   }
 
+  function eGuardian() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 海底神殿の守り。石像より有機的で、人型より大きい。
+    // 珊瑚と鎧が一体化した「祀られた者のなれの果て」
+    px(g, 20, 74, P.wt0, 56, 20);                   // 台座に沈んだ下半身
+    px(g, 20, 74, P.wt1, 56, 4);
+    for (let i = 0; i < 10; i++) px(g, 22 + i * 6, 78, P.wt2, 3, 14);
+    ellipse(g, 48, 56, 24, 22, P.st1);              // 胴（石の鎧）
+    ellipse(g, 41, 49, 16, 14, P.st2);
+    ellipse(g, 38, 45, 8, 7, P.st3);
+    for (let i = 0; i < 4; i++) px(g, 28, 46 + i * 8, P.st0, 40, 2);
+    px(g, 44, 40, P.gd2, 8, 34);                    // 胸の紋章帯
+    px(g, 44, 40, P.gd4, 3, 34);
+    disc(g, 48, 50, 8, P.gd1);
+    disc(g, 48, 50, 6, P.gd3);
+    disc(g, 48, 50, 3, P.wt3);
+    // 珊瑚の腕（左右非対称にして生物感を出す）
+    px(g, 12, 40, P.st1, 14, 30); px(g, 70, 44, P.st1, 14, 26);
+    px(g, 12, 40, P.st2, 5, 30); px(g, 79, 44, P.st0, 5, 26);
+    for (let i = 0; i < 4; i++) {
+      tri(g, 14 + i * 4, 30 - (i % 2) * 6, 3, 12, P.re2);
+      tri(g, 72 + i * 4, 34 - (i % 2) * 5, 3, 10, P.re2);
+    }
+    px(g, 8, 66, P.st2, 16, 10); px(g, 72, 66, P.st2, 16, 10);
+    // 頭（兜の下に光る眼窩）
+    px(g, 34, 8, P.st1, 28, 26);
+    px(g, 34, 8, P.st3, 28, 5);
+    px(g, 56, 12, P.st0, 6, 22);
+    px(g, 30, 14, P.st1, 36, 6);                    // 兜の庇
+    px(g, 30, 14, P.st3, 36, 2);
+    px(g, 38, 22, P.dark, 20, 8);
+    px(g, 39, 23, P.wt3, 7, 6); px(g, 50, 23, P.wt3, 7, 6);
+    px(g, 41, 25, P.wt4, 3, 3); px(g, 52, 25, P.wt4, 3, 3);
+    tri(g, 48, -2, 6, 12, P.gd2);                   // 兜の飾り
+    px(g, 45, 2, P.gd4, 3, 5);
+    // 珊瑚の角
+    tri3(g, 30, 12, 22, -2, 34, 4, P.re1);
+    tri3(g, 66, 12, 74, -2, 62, 4, P.re1);
+    // 気泡
+    for (let i = 0; i < 12; i++) {
+      const x = 16 + ((i * 23) % 64), y = 10 + ((i * 37) % 70);
+      disc(g, x, y, 1 + (i % 2), 'rgba(190,225,245,0.34)');
+    }
+    outline(c, P.out);
+    return c;
+  }
+
   /* ---- ガレン（黒幕・人型のラスボス） ----
      まどうしと差別化する：あちらは顔が影で匿名的、こちらは素顔の老人。
      人間が黒幕であることを一目で伝える。浮遊する「二の輪」を目印にする。 */
@@ -1604,7 +1651,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
-      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(), wolf: eWolf(),
+      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(), wolf: eWolf(), guardian: eGuardian(),
     };
   };
 })();

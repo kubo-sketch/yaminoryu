@@ -494,10 +494,13 @@
     g.scatter([1, 6, 24, 6, 1, 16, 24, 16, 9, 15, 15, 15], '*');
 
     g.set(11, 19, ','); g.set(12, 19, ',');        // 南の出口
+    g.set(11, 4, 'o'); g.set(12, 4, 'o');          // 北の岸壁（船着き場）
 
     return {
       id: 'port', name: 'みなとまち シオカゼ', rows: g.rows(),
       enc: null, indoor: false,
+      // 黒幕を討ったあとの港は雨。空気で物語の段階を伝える
+      weather: function () { return G.flags.galenDead ? 'rain' : null; },
       npcs: [
         { x: 5, y: 6, spr: 'smith', dir: 0, act: { type: 'shop', shop: 'weapon2' } },
         { x: 20, y: 6, spr: 'shop', dir: 0, act: { type: 'shop', shop: 'tool' } },
@@ -505,11 +508,14 @@
         {
           x: 20, y: 15, spr: 'king', dir: 0,
           talk: function () {
-            if (G.flags.galenDead)
+            if (G.flags.galenDead) {
+              G.flags.shipReady = 1;
               return ['とうだいの ぬしも たおれたか。',
-                      'あの おとこは うみを わたって きた。',
-                      'ということは――\nあれを おくりだした がわが\nどこかに あるということだ。',
-                      'うみの むこうは\nまだ なにも わかっておらん。'];
+                      'あの おとこは うみを わたって きた……\nと おもっていた。',
+                      'だが ちがう。\nあれは うみの「そこ」から きたのだ。',
+                      'しおが かわった。いまなら\nしずんだ みやこへ ふねを だせる。',
+                      'きたの がんぺきで まっている。\nいく きが あるなら こい。'];
+            }
             if (G.flags.bossDead)
               return ['りゅうが たおれたと きいた。',
                       'だが わしは まだ ねむれん。',
@@ -560,6 +566,16 @@
         { x: 11, y: 19, type: 'warp', to: 'field', tx: 35, ty: 20, dir: 0 },
         { x: 12, y: 19, type: 'warp', to: 'field', tx: 35, ty: 20, dir: 0 },
         { x: 10, y: 6, type: 'sign', text: '「みなとまち シオカゼ」\n　うみの かおりが する' },
+        {
+          x: 11, y: 4, type: 'warp', to: 'ruin', tx: 11, ty: 18, dir: 3,
+          requires: 'shipReady',
+          deny: 'ふねは でていない。\nふなおさに はなしを きこう。',
+        },
+        {
+          x: 12, y: 4, type: 'warp', to: 'ruin', tx: 12, ty: 18, dir: 3,
+          requires: 'shipReady',
+          deny: 'ふねは でていない。\nふなおさに はなしを きこう。',
+        },
       ],
     };
   }
@@ -874,6 +890,73 @@
     };
   }
 
+  /* =====================================================================
+     しずんだ みやこ アルシオン（海底遺跡・24x20）
+     ---------------------------------------------------------------------
+     ガレンを倒したあと、船長が船を出してくれる。ここで「輪」の起源が判る。
+     アルシオンは竜を祀り、やがて竜の力を borrow しようとして滅んだ。
+     ガレンは彼らの遺物を持ち出した後継者にすぎない――という構図にする。
+     ===================================================================== */
+  function buildRuin() {
+    const g = new Grid(24, 20, '%');
+    g.rect(2, 2, 20, 16, '-');                     // 神殿の広間
+    g.rect(6, 6, 4, 3, '%'); g.rect(14, 6, 4, 3, '%');   // 柱
+    g.rect(6, 11, 4, 3, '%'); g.rect(14, 11, 4, 3, '%');
+    g.rect(10, 2, 4, 4, 'o');                      // 祭壇へ続く石畳
+    g.set(11, 3, 'z'); g.set(12, 3, 'z');           // 祭壇
+    g.set(11, 19, 'D'); g.set(12, 19, 'D');         // 外（船）へ
+    g.set(11, 18, '-'); g.set(12, 18, '-');
+    // 水没した装飾
+    g.set(3, 3, 'i'); g.set(20, 3, 'i'); g.set(3, 16, 'i'); g.set(20, 16, 'i');
+    g.set(4, 9, 'u'); g.set(19, 9, 'u'); g.set(11, 15, 'u'); g.set(12, 15, 'u');
+    g.set(5, 14, 'j'); g.set(18, 5, 'j');
+    g.set(3, 8, '$'); g.set(20, 12, '$');
+    return {
+      id: 'ruin', name: 'しずんだ みやこ アルシオン', rows: g.rows(),
+      enc: G.ENC.ruin, indoor: true, weather: 'fog',
+      npcs: [],
+      events: [
+        { x: 11, y: 19, type: 'warp', to: 'port', tx: 11, ty: 5, dir: 0 },
+        { x: 12, y: 19, type: 'warp', to: 'port', tx: 11, ty: 5, dir: 0 },
+        { x: 3, y: 8, type: 'chest', id: 'r1', gold: 500 },
+        { x: 20, y: 12, type: 'chest', id: 'r2', item: 'yakusou', n: 6 },
+        {
+          x: 11, y: 4, type: 'read', id: 'a1',
+          text: 'かべ いちめんの ひぶん――\n\n'
+              + '「われらは りゅうを まつった。\n'
+              + 'りゅうは この ちを しずめ、\n'
+              + 'われらは さかえた」',
+          again: 'かべ いちめんの ひぶん。',
+        },
+        {
+          x: 12, y: 4, type: 'read', id: 'a2',
+          text: 'ひぶんの つづき――\n\n'
+              + '「やがて われらは おもった。\n'
+              + 'まつるより、つかう ほうが はやいと」\n\n'
+              + '「そうして「わ」が つくられた」',
+          again: 'ひぶんの つづき。',
+        },
+        {
+          x: 7, y: 15, type: 'read', id: 'a3',
+          text: 'くずれた せきばん――\n\n'
+              + '「わを はめられた りゅうは\n'
+              + 'くるい、うみを もちあげた。\n'
+              + 'みやこは いちやで しずんだ」\n\n'
+              + '「にげた ものは やまを こえた」',
+          again: 'くずれた せきばん。',
+        },
+        {
+          x: 16, y: 15, type: 'read', id: 'a4',
+          text: 'あたらしい あしあとが ある。\n\n'
+              + 'ゆかの ほこりに、\n'
+              + 'なにかを もちだした あとが のこっている。\n\n'
+              + '……５ねん ほど まえの ものか。',
+          again: 'なにかを もちだした あと。',
+        },
+      ],
+    };
+  }
+
   G.buildMaps = function () {
     G.MAPS = {
       town: buildTown(),
@@ -885,6 +968,7 @@
       tower2: buildTower2(),
       tower3: buildTower3(),
       pass: buildPass(),
+      ruin: buildRuin(),
     };
     // 幅の検証（構造上ズレないはずだが、編集ミスを早期に出す）
     Object.keys(G.MAPS).forEach(function (k) {

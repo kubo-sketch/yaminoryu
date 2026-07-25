@@ -204,5 +204,47 @@ console.log('\n=== 隠し部屋 ===');
   else ok('ヒントを言うNPCがいる');
 }
 
+/* ---- 海底遺跡アルシオン ---- */
+console.log('\n=== しずんだ みやこ アルシオン ===');
+{
+  const ruin = G.MAPS.ruin, port = G.MAPS.port;
+  if (!ruin) fail('海底遺跡(ruin)が無い');
+  else {
+    const ship = (port.events || []).filter((e) => e.to === 'ruin');
+    if (!ship.length) fail('港から海底遺跡への船着き場が無い');
+    else if (ship.some((e) => e.requires !== 'shipReady')) fail('黒幕を倒す前に海底へ行けてしまう');
+    else ok('黒幕を倒すまで船は出ない');
+    // 船長がフラグを立てるか
+    G.flags = { read: {}, q: {}, bossDead: 1, galenDead: 1, chests: {} };
+    const capt2 = port.npcs.find((n) => n.spr === 'king');
+    capt2.talk();
+    if (!G.flags.shipReady) fail('船長に話しても船が出ない（進行不能）');
+    else ok('船長に話すと船が出る');
+    // 碑文が4枚そろっているか
+    const lore = (ruin.events || []).filter((e) => e.type === 'read');
+    if (lore.length < 4) fail(`碑文が ${lore.length} 枚しかない`);
+    else ok(`碑文 ${lore.length} 枚（輪の起源）`);
+  }
+}
+
+/* ---- 天候が進行で変わるか ---- */
+console.log('\n=== 天候 ===');
+{
+  let dynamic = 0, fixed = 0;
+  for (const id of Object.keys(G.MAPS)) {
+    const w = G.MAPS[id].weather;
+    if (typeof w === 'function') dynamic++;
+    else if (w) fixed++;
+  }
+  if (!fixed && !dynamic) fail('天候がどこにも設定されていない');
+  else ok(`固定 ${fixed} マップ・進行で変わる ${dynamic} マップ`);
+  G.flags.galenDead = 0;
+  const before2 = G.MAPS.port.weather();
+  G.flags.galenDead = 1;
+  const after2 = G.MAPS.port.weather();
+  if (before2 === after2) fail('港の天候が進行で変わらない');
+  else ok(`港：討伐前=${before2 || 'なし'} → 討伐後=${after2}`);
+}
+
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);

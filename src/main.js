@@ -56,7 +56,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, chests: {}, q: {}, read: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, chests: {}, q: {}, read: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -199,6 +199,15 @@
       lines.push('とうだいの おくで たおれた\nろうじんの ことは、\nむらには つたえなかった。');
       lines.push('ただ はかもりだけが\n3つの はかの まえで\nながいこと たっていた。');
     }
+    // 海底で起源まで辿っていれば、ガレンも「最初の過ち」の後継者だったと判る
+    const R = G.flags.read || {};
+    if (R.a1 && R.a2 && R.a3) {
+      lines.push('うみの そこに しずんだ みやこは、\nかつて りゅうを まつっていた。');
+      lines.push('やがて かれらは おもった。\n「まつるより、つかう ほうが はやい」と。',
+        'さいしょの わは そこで つくられ、\nみやこは いちやで しずんだ。');
+      lines.push('ガレンは その あやまちを\nひろいあげた だけの おとこだった。');
+      if (R.a4) lines.push('ゆかに のこされた あしあとは\n５ねんまえの もの。\n\nかれは たしかに そこに いた。');
+    }
     // 日記を全部読んでいれば、竜の名誉が回復する結末になる
     if (lore) {
       lines.push('のこされた にっきは\nきょうかいに おさめられた。',
@@ -212,6 +221,7 @@
       + '\n' + (lore ? 'にっき ３／３' : 'にっき ' + [G.flags.read.d1, G.flags.read.d2, G.flags.read.d3].filter(Boolean).length + '／３')
       + '　' + (quest ? 'いらい 　たっせい' : 'いらい 　みたっせい')
       + (G.flags.galenDead ? '\n「くろまくを うった」' : '')
+      + ((R.a1 && R.a2 && R.a3) ? '　「わの きげんを しった」' : '')
       + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう');
     lines.push('ボタンを おすと\nタイトルに もどります。');
     G.msg.show(lines, function () { G.ending.done = true; });

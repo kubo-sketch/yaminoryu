@@ -131,13 +131,13 @@ function simBattle(p, group) {
    1) 雑魚戦：Lv別の勝率と平均ターン数
    ===================================================================== */
 console.log('=== 雑魚戦の勝率（やくそう6個持ち・N=2000）===');
-console.log('敵\\Lv        ' + [1, 2, 3, 4, 5, 6, 7, 8].map((l) => 'Lv' + String(l).padEnd(4)).join(''));
-const zako = ['slime', 'bat', 'spider', 'goblin', 'wolf', 'skeleton', 'mage', 'serpent', 'statue'];
+console.log('敵\\Lv        ' + [3, 5, 7, 9, 10, 11, 12].map((l) => 'Lv' + String(l).padEnd(4)).join(''));
+const zako = ['slime', 'bat', 'spider', 'goblin', 'wolf', 'skeleton', 'mage', 'serpent', 'statue', 'guardian'];
 zako.forEach((id) => {
-  const row = [1, 2, 3, 4, 5, 6, 7, 8].map((lv) => {
+  const row = [3, 5, 7, 9, 10, 11, 12].map((lv) => {
     // その頃に現実的な装備
-    const w = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : 4;
-    const a = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : 3;
+    const w = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : lv <= 9 ? 4 : 5;
+    const a = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : lv <= 9 ? 4 : 5;
     let win = 0;
     for (let i = 0; i < 2000; i++) if (simBattle(mkPlayer(lv, w, a), makeGroup(id)).win) win++;
     return String(Math.round((win / 2000) * 100)).padStart(3) + '% ';
