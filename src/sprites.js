@@ -609,6 +609,171 @@
     return c;
   }
 
+
+  /* ---- 家具・装飾（町の密度はここで決まる） ---- */
+  function tBed() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 2, 1, P.wd0, 12, 15);
+    px(g, 3, 2, P.wd2, 10, 13);
+    px(g, 3, 2, P.bn3, 10, 5);                 // 枕
+    px(g, 4, 3, P.bn4, 8, 3);
+    px(g, 3, 7, P.re1, 10, 8);                 // 掛け布団
+    px(g, 3, 7, P.re2, 10, 6);
+    px(g, 4, 8, P.re3, 8, 2);
+    px(g, 3, 14, P.wd0, 10, 1);
+    return c;
+  }
+  function tTable() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 1, 13, P.shadow, 14, 3);
+    px(g, 1, 3, P.wd0, 14, 10);
+    px(g, 2, 4, P.wd2, 12, 8);
+    px(g, 2, 4, P.wd4, 12, 2);
+    px(g, 2, 11, P.wd1, 12, 1);
+    px(g, 6, 5, P.bn3, 4, 3); px(g, 6, 5, P.bn4, 4, 1);   // 皿
+    px(g, 11, 6, P.gd2, 2, 3); px(g, 11, 6, P.gd4, 1, 1); // 杯
+    return c;
+  }
+  function tShelf() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 1, 0, P.wd0, 14, 15);
+    px(g, 2, 1, P.wd1, 12, 13);
+    for (let r = 0; r < 3; r++) {
+      const y = 1 + r * 4;
+      px(g, 2, y + 3, P.wd3, 12, 1);
+      const cols = [P.re2, P.bl2, P.gn2, P.gd2, P.pp3];
+      for (let i = 0; i < 5; i++) px(g, 3 + i * 2, y, cols[(i + r) % 5], 2, 3);
+    }
+    return c;
+  }
+  function tFountain() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.st2, 16, 16);
+    for (let y = 0; y < 16; y += 8) { px(g, 0, y, P.st3, 16, 1); px(g, 0, y + 7, P.st1, 16, 1); }
+    ellipse(g, 8, 9, 7, 6, P.st1);
+    ellipse(g, 8, 9, 6, 5, P.wt1);
+    ellipse(g, 8, 9, 5, 4, P.wt2);
+    ellipse(g, 7, 8, 3, 2, P.wt3);
+    px(g, 7, 2, P.st3, 2, 6);                  // 噴水柱
+    px(g, 6, 1, P.st4, 4, 2);
+    px(g, 7, 0, P.wt4, 2, 2);
+    px(g, 5, 3, P.wt4, 1, 2); px(g, 10, 3, P.wt4, 1, 2);
+    return c;
+  }
+  function tBench() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    baseGrass(g, 45);
+    px(g, 1, 12, P.shadow, 14, 2);
+    px(g, 1, 6, P.wd1, 14, 3); px(g, 1, 6, P.wd3, 14, 1);
+    px(g, 1, 2, P.wd1, 14, 2); px(g, 1, 2, P.wd3, 14, 1);
+    px(g, 2, 9, P.wd0, 2, 4); px(g, 12, 9, P.wd0, 2, 4);
+    px(g, 2, 4, P.wd0, 2, 2); px(g, 12, 4, P.wd0, 2, 2);
+    return c;
+  }
+  function tCart() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    baseGrass(g, 47);
+    px(g, 1, 13, P.shadow, 14, 3);
+    px(g, 2, 3, P.wd0, 12, 8);
+    px(g, 3, 4, P.wd2, 10, 6);
+    px(g, 3, 4, P.wd4, 10, 1);
+    for (let x = 4; x < 13; x += 3) px(g, x, 5, P.wd1, 1, 5);
+    disc(g, 5, 12, 3, P.wd0); disc(g, 5, 12, 2, P.wd3);
+    disc(g, 11, 12, 3, P.wd0); disc(g, 11, 12, 2, P.wd3);
+    return c;
+  }
+  function tFlowerbed() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.rd1, 16, 16);
+    grain(g, 51, 20, [P.rd0, P.rd2]);
+    px(g, 0, 0, P.st2, 16, 2); px(g, 0, 14, P.st1, 16, 2);
+    px(g, 0, 0, P.st2, 2, 16); px(g, 14, 0, P.st1, 2, 16);
+    px(g, 0, 0, P.st3, 16, 1);
+    const cols = [P.re3, P.gd3, P.bn4, P.pp4];
+    for (let i = 0; i < 5; i++) {
+      const x = 3 + ((i * 5) % 10), y = 4 + ((i * 3) % 8);
+      px(g, x, y + 1, P.gn2, 1, 2);
+      px(g, x, y - 1, cols[i % 4]); px(g, x - 1, y, cols[i % 4]);
+      px(g, x + 1, y, cols[i % 4]); px(g, x, y + 1, cols[i % 4]);
+      px(g, x, y, P.gd4);
+    }
+    return c;
+  }
+  // 石畳（広場用・オートタイル）
+  const tStone = () => [autoTile(function (g, m, e) {
+    px(g, 0, 0, P.st2, 16, 16);
+    for (let y = 0; y < 16; y += 8)
+      for (let x = ((y / 8) % 2) * 4; x < 16; x += 8) {
+        px(g, x, y, P.st3, 7, 7);
+        px(g, x, y, P.st4, 7, 1);
+        px(g, x, y + 6, P.st1, 7, 1);
+      }
+    grain(g, 53, 14, [P.st1, P.st4]);
+    if (e.up) px(g, 0, 0, P.st1, 16, 1);
+    if (e.down) px(g, 0, 15, P.st1, 16, 1);
+    if (e.left) px(g, 0, 0, P.st1, 1, 16);
+    if (e.right) px(g, 15, 0, P.st1, 1, 16);
+  })];
+  function tGrave() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    baseGrass(g, 57);
+    px(g, 4, 13, P.shadow, 8, 2);
+    px(g, 4, 3, P.st1, 8, 11);
+    px(g, 5, 4, P.st3, 6, 9);
+    dome(g, 8, 4, 4, 3, P.st1);
+    dome(g, 8, 3, 3, 2, P.st3);
+    px(g, 7, 6, P.st0, 2, 6); px(g, 5, 8, P.st0, 6, 2);   // 十字
+    px(g, 3, 14, P.st0, 10, 2);
+    return c;
+  }
+  function tCrate() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 2, 14, P.shadow, 12, 2);
+    px(g, 2, 2, P.wd0, 12, 13);
+    px(g, 3, 3, P.wd2, 10, 11);
+    px(g, 3, 3, P.wd4, 10, 2);
+    px(g, 3, 8, P.wd1, 10, 1);
+    px(g, 7, 3, P.wd1, 2, 11);
+    return c;
+  }
+  // 洞窟の装飾
+  function tStalag() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.cf2, 16, 16);
+    grain(g, 61, 24, [P.cf1, P.cf3]);
+    tri(g, 4, 16, 3, -10, P.cw2);
+    for (let i = 0; i < 10; i++) px(g, 4 - ((i * 3) % 3), 15 - i, P.cw2, 3 - ((i / 4) | 0), 1);
+    for (let i = 0; i < 8; i++) px(g, 11 - ((i * 2) % 2), 15 - i, P.cw1, 3 - ((i / 4) | 0), 1);
+    px(g, 3, 6, P.cw3, 1, 6); px(g, 10, 8, P.cw3, 1, 5);
+    px(g, 2, 14, P.cw0, 12, 2);
+    return c;
+  }
+  function tPuddle() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.cf2, 16, 16);
+    grain(g, 63, 20, [P.cf1, P.cf3]);
+    ellipse(g, 8, 9, 6, 4, P.wt0);
+    ellipse(g, 8, 9, 5, 3, P.wt1);
+    ellipse(g, 7, 8, 3, 2, P.wt2);
+    px(g, 5, 7, P.wt3, 2, 1);
+    return c;
+  }
+  function tBones() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.cf2, 16, 16);
+    grain(g, 67, 20, [P.cf1, P.cf3]);
+    disc(g, 6, 9, 3, P.bn1);
+    disc(g, 6, 8, 2, P.bn3);
+    px(g, 4, 9, P.cf0, 2, 2); px(g, 7, 9, P.cf0, 2, 2);
+    px(g, 10, 6, P.bn1, 5, 2); px(g, 10, 6, P.bn3, 5, 1);
+    px(g, 9, 11, P.bn1, 6, 2); px(g, 9, 11, P.bn3, 6, 1);
+    return c;
+  }
+
   /* =====================================================================
      キャラクター（16x24／4方向 × 2コマ）
      ---------------------------------------------------------------------
@@ -1026,6 +1191,10 @@
       flower: tFlower(),
       barrel: tBarrel(), pot: tPot(), torch: tTorch(),
       fence: tFence(), well: tWell(), carpet: tCarpet(),
+      bed: tBed(), table: tTable(), shelf: tShelf(), fountain: tFountain(),
+      bench: tBench(), cart: tCart(), flowerbed: tFlowerbed(), stone: tStone(),
+      grave: tGrave(), crate: tCrate(),
+      stalag: tStalag(), puddle: tPuddle(), bones: tBones(),
     };
 
     G.SPR = {

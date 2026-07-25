@@ -63,14 +63,14 @@ for (const id of Object.keys(G.MAPS)) {
 
 /* ---- 到達可能性：町のスタートから全ワープを辿って BFS ---- */
 console.log('\n=== 到達可能性（スタート地点から歩いて行けるか）===');
-const start = { map: 'town', x: 13, y: 18 };
+const start = { map: 'town', x: 15, y: 23 };
 const seen = new Set();
 const q = [start];
 const reachedWarps = new Set();
 const reachedEvents = new Set();
 
 const key = (m, x, y) => `${m}:${x},${y}`;
-if (!G.TILEDEF[G.MAPS.town.rows[18][13]].walk) err('スタート地点が通行不可！');
+if (!G.TILEDEF[G.MAPS.town.rows[23][15]].walk) err('スタート地点が通行不可！');
 
 while (q.length) {
   const cur = q.shift();

@@ -62,11 +62,11 @@
       exp: 0, gold: 24,
       weapon: 1, armor: 1,
       items: { yakusou: 3 }, spells: [],
-      map: 'town', x: 13, y: 18, dir: 3,
+      map: 'town', x: 15, y: 23, dir: 3,
       rx: 0, ry: 0, moving: false, moveT: 0, frame: 0,
       steps: 0, kills: 0, holy: 0, poison: 0, playMs: 0,
     };
-    G.field.enter('town', 13, 18, 3);
+    G.field.enter('town', 15, 23, 3);
     G.state = 'field';
     G.msg.show([
       'ここは「はじまりの村」。',
@@ -136,7 +136,7 @@
           'きを つけて いくのだぞ。',
         ], function () {
           p.hp = p.maxhp; p.mp = p.maxmp; p.poison = 0;
-          G.field.enter('town', 21, 16, 3);
+          G.field.enter('town', 24, 21, 3);
           G.state = 'field';
           G.gameover.shown = 0;
           G.gameover.t = 0;

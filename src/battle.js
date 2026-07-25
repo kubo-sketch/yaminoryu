@@ -35,7 +35,7 @@
     enemies: [], isBoss: false, canFlee: true,
     phase: 'msg',        // msg | command | spell | item | target | anim | over
     cmd: 0, sub: 0, subList: [], target: 0, pendingSpell: null,
-    queue: [], pops: [], defending: false,
+    queue: [], pops: [], efx: [], defending: false, hitstop: 0,
 
     /* ---------------- 開始 ---------------- */
     start: function (enemyId, isBoss) {
@@ -54,7 +54,7 @@
       this.canFlee = d.flee !== false;
       this.cmd = 0; this.sub = 0; this.target = 0;
       this.defending = false;
-      this.queue = []; this.pops = [];
+      this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
       G.state = 'battle';
       G.audio.se('encounter');
       G.audio.scene(null, isBoss ? 'boss' : 'battle');
@@ -71,6 +71,17 @@
       if (this.enemies[this.target] && this.enemies[this.target].alive) return;
       for (let i = 0; i < this.enemies.length; i++)
         if (this.enemies[i].alive) { this.target = i; return; }
+    },
+
+    /* ---------------- エフェクト ----------------
+       斬撃・呪文を図形で描く。モーションが無いと、どの攻撃をしても
+       画面が同じに見えて手応えが出ない。 */
+    efxAt: function (kind, idx, dur) {
+      this.efx.push({ kind: kind, x: this.slotX(idx), y: 300, t: 0, dur: dur || 420 });
+    },
+    efxAll: function (kind, dur) {
+      const self = this;
+      this.living().forEach(function (e) { self.efxAt(kind, self.enemies.indexOf(e), dur); });
     },
 
     /* ---------------- ダメージ表示 ---------------- */
@@ -140,6 +151,8 @@
         const r = self.hitEnemy(e, raw, null);
         G.audio.se(crit ? 'crit' : 'hit');
         G.fx.shake(crit ? 8 : 4, crit ? 260 : 180);
+        self.efxAt(crit ? 'slash2' : 'slash', self.target, crit ? 520 : 380);
+        self.hitstop = crit ? 110 : 60;
         self.pop(self.target, String(r.dmg), crit ? '#e8c85c' : '#f2f0e5');
         let t = p.name + 'の こうげき！\n';
         if (crit) t += 'かいしんの いちげき！！\n';
@@ -192,6 +205,9 @@
           if (!targets.length) { self.next(); return; }
           G.fx.flash(sp.elem === 'ice' ? '#8fd8ff' : sp.elem === 'thunder' ? '#fff2a0' : '#ffcc66', 200);
           G.fx.shake(5, 220);
+          const ek = sp.elem || 'fire';
+          if (sp.all) self.efxAll(ek, 620); else self.efxAt(ek, tgt, 620);
+          self.hitstop = 90;
           let note = '';
           targets.forEach(function (te) {
             const idx = self.enemies.indexOf(te);
@@ -292,6 +308,8 @@
           e.lunge = 200;
 
           const hit = function (dmg, kind) {
+            self.efx.push({ kind: kind || 'claw', x: 160, y: 300, t: 0, dur: 380 });
+            self.hitstop = 70;
             if (self.defending) dmg = Math.max(1, Math.floor(dmg * 0.5));
             p.hp = Math.max(0, p.hp - dmg);
             self.pops.push({ x: 160, y: 300, text: '-' + dmg, col: '#ff8878', t: 0 });
@@ -299,7 +317,7 @@
           };
 
           if (cur.breath && Math.random() < cur.breath) {
-            const dmg = hit(26 + G.rnd(14));
+            const dmg = hit(26 + G.rnd(14), 'fire');
             G.audio.se('fire');
             G.fx.flash('#ff7a2a', 320); G.fx.shake(9, 380);
             self.say(e.name + 'は ほのおの いきを はいた！\n' + p.name + 'は ' + dmg + 'の ダメージ！'
@@ -308,7 +326,7 @@
           }
           if (cur.spell && Math.random() < cur.spell.rate) {
             const sp = G.SPELLS[cur.spell.id];
-            const dmg = hit(Math.max(1, Math.floor(sp.power() * 0.85)));
+            const dmg = hit(Math.max(1, Math.floor(sp.power() * 0.85)), 'dark');
             G.audio.se('spell');
             G.fx.flash('#c07ae8', 260); G.fx.shake(6, 260);
             self.say(e.name + 'は ' + sp.name + 'を となえた！\n' + p.name + 'は ' + dmg + 'の ダメージ！');
@@ -373,6 +391,12 @@
        更新
        ===================================================================== */
     update: function (dt) {
+      // ヒットストップ：当たった瞬間だけ時間を止めて打撃感を出す
+      if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
+      for (let i = this.efx.length - 1; i >= 0; i--) {
+        this.efx[i].t += dt;
+        if (this.efx[i].t > this.efx[i].dur) this.efx.splice(i, 1);
+      }
       this.enemies.forEach(function (e) {
         if (e.blink > 0) e.blink -= dt;
         if (e.lunge > 0) e.lunge -= dt;
@@ -587,6 +611,9 @@
         c.restore();
       });
 
+      // 攻撃・呪文のモーション
+      this.efx.forEach(function (f) { self.drawEfx(c, f); });
+
       // 対象カーソル
       if (this.phase === 'target') {
         const x = this.slotX(this.target);
@@ -627,6 +654,94 @@
       if (this.phase === 'command' || this.phase === 'target') this.drawCmd(this.phase === 'target');
       else if (this.phase === 'spell' || this.phase === 'item') { this.drawCmd(true); this.drawSub(); }
       else G.msg.draw();
+    },
+
+    drawEfx: function (c, f) {
+      const k = f.t / f.dur;                       // 0→1
+      const x = f.x, y = f.y;
+      c.save();
+      if (f.kind === 'slash' || f.kind === 'slash2') {
+        // 斜めの太い光跡。会心は2本走らせる
+        const n = f.kind === 'slash2' ? 2 : 1;
+        for (let i = 0; i < n; i++) {
+          const kk = Math.max(0, Math.min(1, k * 1.6 - i * 0.35));
+          if (kk <= 0 || kk >= 1) continue;
+          c.globalAlpha = 1 - kk;
+          c.strokeStyle = i ? '#ffe89a' : '#ffffff';
+          c.lineWidth = 10 - kk * 7;
+          c.beginPath();
+          const len = 150, sx = x - 70 + i * 30, sy = y - 80 + i * 40;
+          c.moveTo(sx + kk * 40, sy + kk * 20);
+          c.lineTo(sx + len * kk + 40, sy + len * kk * 0.9);
+          c.stroke();
+        }
+      } else if (f.kind === 'fire') {
+        // 立ち上る火の粉
+        for (let i = 0; i < 16; i++) {
+          const t2 = (k + i * 0.06) % 1;
+          const px2 = x + Math.sin(i * 2.1 + k * 5) * 42 * (1 - t2 * 0.4);
+          const py2 = y + 60 - t2 * 150;
+          c.globalAlpha = (1 - t2) * 0.95;
+          c.fillStyle = t2 < 0.35 ? '#fff0a0' : t2 < 0.7 ? '#f08a30' : '#a83820';
+          const r = (1 - t2) * 11 + 3;
+          c.fillRect(px2 - r / 2, py2 - r / 2, r, r);
+        }
+      } else if (f.kind === 'ice') {
+        // 上から降る結晶と、着弾の砕け
+        for (let i = 0; i < 10; i++) {
+          const t2 = Math.min(1, k * 1.5 - i * 0.05);
+          if (t2 <= 0) continue;
+          const px2 = x + ((i % 5) - 2) * 26 + Math.sin(i) * 8;
+          const py2 = y - 120 + t2 * 170;
+          c.globalAlpha = t2 > 0.85 ? (1 - t2) * 6 : 0.95;
+          c.fillStyle = i % 2 ? '#bfeaff' : '#7fc4ee';
+          c.save();
+          c.translate(px2, py2); c.rotate(k * 5 + i);
+          c.fillRect(-3, -11, 6, 22); c.fillRect(-11, -3, 22, 6);
+          c.restore();
+        }
+      } else if (f.kind === 'thunder') {
+        // 上から落ちるジグザグの稲妻
+        c.globalAlpha = k < 0.6 ? 1 : (1 - k) * 2.5;
+        c.strokeStyle = k < 0.25 ? '#ffffff' : '#ffe45c';
+        c.lineWidth = 9 - k * 5;
+        c.beginPath();
+        c.moveTo(x, -10);
+        let yy = -10, xx = x;
+        for (let i = 0; i < 7; i++) {
+          yy += 50; xx += ((i % 2) ? 26 : -26) * (1 - i / 9);
+          c.lineTo(xx, yy);
+          if (yy > y + 70) break;
+        }
+        c.stroke();
+        c.globalAlpha = (1 - k) * 0.5;
+        c.fillStyle = '#fff8c0';
+        c.fillRect(0, 0, G.W, 396);
+      } else if (f.kind === 'claw') {
+        // 敵の攻撃：画面手前を横切る3本の爪痕
+        for (let i = 0; i < 3; i++) {
+          const kk = Math.max(0, Math.min(1, k * 1.8 - i * 0.12));
+          if (kk <= 0 || kk >= 1) continue;
+          c.globalAlpha = 1 - kk;
+          c.strokeStyle = '#ff6a5a';
+          c.lineWidth = 7;
+          c.beginPath();
+          c.moveTo(60 + i * 34, 200 + kk * 40);
+          c.lineTo(60 + i * 34 + 110 * kk, 200 + kk * 190);
+          c.stroke();
+        }
+      } else if (f.kind === 'dark') {
+        for (let i = 0; i < 12; i++) {
+          const t2 = (k + i * 0.08) % 1;
+          c.globalAlpha = (1 - t2) * 0.9;
+          c.fillStyle = i % 2 ? '#a67fc4' : '#634080';
+          const a = i * 0.9 + k * 4;
+          const r = 20 + t2 * 90;
+          c.fillRect(160 + Math.cos(a) * r, 290 + Math.sin(a) * r * 0.6, 9, 9);
+        }
+      }
+      c.restore();
+      c.globalAlpha = 1;
     },
 
     drawCmd: function (dim) {

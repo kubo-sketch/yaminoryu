@@ -332,6 +332,34 @@
         c.fillRect(0, 0, G.W, G.H);
       }
 
+      // 環境レイヤー：地面より遅く流れる雲の影／洞窟の光の粉塵。
+      // カメラと違う速度で動かすことで、平らな見下ろし画面に奥行きが出る。
+      if (m.indoor) {
+        c.fillStyle = 'rgba(255,236,180,0.30)';
+        for (let i = 0; i < 26; i++) {
+          const t = (G.time / 3600 + i * 0.13) % 1;
+          const dx = (i * 137) % G.W;
+          const dy = (i * 91) % G.H;
+          const x = (dx + Math.sin(t * 6.28 + i) * 22 - cam.x * 0.15) % G.W;
+          const y = (dy + t * 60 - cam.y * 0.15) % G.H;
+          c.globalAlpha = 0.10 + 0.22 * Math.abs(Math.sin(t * 6.28 + i));
+          c.fillRect((x + G.W) % G.W, (y + G.H) % G.H, 2, 2);
+        }
+        c.globalAlpha = 1;
+      } else {
+        c.fillStyle = 'rgba(12,16,30,0.16)';
+        for (let i = 0; i < 5; i++) {
+          const w = 420 + i * 90, h = 150 + (i % 3) * 60;
+          // 雲そのものはカメラの0.55倍でしか動かない＝視差
+          let x = ((G.time * 0.014 + i * 520) - cam.x * 0.55) % (G.W + w * 2) - w;
+          let y = ((i * 233) % (G.H + h)) - cam.y * 0.55 % (G.H + h);
+          if (y < -h) y += G.H + h;
+          c.beginPath();
+          c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+
       G.drawHud();
       G.msg.draw();
       if (G.modal.active) G.modal.draw();
@@ -430,7 +458,7 @@
     G.closeMenu();
     G.field.busy = true;
     G.fx.fadeOut(function () {
-      G.field.enter('town', 13, 20, 3);
+      G.field.enter('town', 15, 24, 3);
       G.fx.fadeIn(function () { G.field.busy = false; }, 0.006);
     }, 0.006);
   };
