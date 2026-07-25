@@ -1275,6 +1275,84 @@
     return c;
   }
 
+  /* ---- 灯台の魔物（うみへび・せきぞう） ---- */
+  function eSerpent() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 長い胴をS字にうねらせる。とぐろの重なりで「長さ」を見せる
+    const seg = [];
+    for (let i = 0; i < 46; i++) {
+      const t = i / 45;
+      const x = 48 + Math.round(Math.sin(t * 7.2) * (30 - t * 8));
+      const y = 92 - Math.round(t * 62);
+      seg.push([x, y, Math.round(15 - t * 7)]);
+    }
+    // 奥のとぐろ（暗く）
+    for (let i = seg.length - 1; i >= 20; i--) {
+      const [x, y, w] = seg[i];
+      ellipse(g, x, y, w, Math.max(4, w - 3), P.gn1);
+    }
+    for (let i = 19; i >= 0; i--) {
+      const [x, y, w] = seg[i];
+      ellipse(g, x, y, w, Math.max(4, w - 3), P.gn2);
+      ellipse(g, x - 2, y - 2, Math.max(3, w - 5), Math.max(3, w - 7), P.gn3);
+    }
+    // 腹の帯
+    for (let i = 0; i < 44; i += 3) {
+      const [x, y, w] = seg[i];
+      px(g, x - (w >> 1), y + Math.max(2, w - 6), P.wt4, w, 2);
+    }
+    // 頭（先端）
+    const hd = seg[seg.length - 1];
+    const hx = hd[0], hy = hd[1];
+    ellipse(g, hx, hy, 13, 10, P.gn2);
+    ellipse(g, hx - 2, hy - 3, 9, 6, P.gn3);
+    ellipse(g, hx + 6, hy + 2, 8, 5, P.gn2);            // 鼻先
+    px(g, hx - 8, hy - 4, P.gd3, 6, 5); px(g, hx + 2, hy - 4, P.gd3, 6, 5);
+    px(g, hx - 7, hy - 3, P.out, 2, 4); px(g, hx + 3, hy - 3, P.out, 2, 4);
+    px(g, hx - 4, hy + 5, P.out, 12, 2);                // 口
+    px(g, hx + 8, hy + 6, P.re2, 8, 2);                 // 舌
+    px(g, hx + 14, hy + 5, P.re2, 4, 1); px(g, hx + 14, hy + 8, P.re2, 4, 1);
+    // えら／ひれ
+    for (let i = 0; i < 3; i++) {
+      tri(g, hx - 12 + i * 3, hy - 16, 3, 8, P.wt3);
+      tri(g, hx + 4 + i * 3, hy - 16, 3, 8, P.wt3);
+    }
+    outline(c, P.out);
+    return c;
+  }
+
+  function eStatue() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 石像。左右対称で角ばったシルエット＝生物と対比させる
+    px(g, 26, 78, P.st0, 44, 14);                       // 台座
+    px(g, 26, 78, P.st3, 44, 3);
+    px(g, 30, 82, P.st1, 36, 8);
+    px(g, 34, 40, P.st2, 28, 40);                       // 胴
+    px(g, 34, 40, P.st3, 12, 40);
+    px(g, 56, 40, P.st1, 6, 40);
+    for (let i = 0; i < 4; i++) px(g, 34, 46 + i * 8, P.st1, 28, 2);   // 石の継ぎ目
+    px(g, 20, 42, P.st2, 14, 30); px(g, 62, 42, P.st2, 14, 30);        // 腕
+    px(g, 20, 42, P.st3, 5, 30); px(g, 71, 42, P.st0, 5, 30);
+    px(g, 16, 66, P.st1, 18, 12); px(g, 62, 66, P.st1, 18, 12);        // こぶし
+    px(g, 16, 66, P.st3, 18, 3); px(g, 62, 66, P.st3, 18, 3);
+    px(g, 36, 8, P.st2, 24, 30);                        // 頭
+    px(g, 36, 8, P.st3, 10, 30);
+    px(g, 54, 8, P.st1, 6, 30);
+    px(g, 32, 12, P.st1, 32, 6);                        // 兜のひさし
+    px(g, 32, 12, P.st3, 32, 2);
+    px(g, 39, 22, P.re1, 7, 6); px(g, 50, 22, P.re1, 7, 6);            // 目（赤く灯る）
+    px(g, 40, 23, P.re3, 5, 4); px(g, 51, 23, P.re3, 5, 4);
+    px(g, 41, 24, P.gd4, 2, 2); px(g, 52, 24, P.gd4, 2, 2);
+    px(g, 42, 32, P.st0, 12, 3);                        // 口の線
+    tri(g, 48, 0, 5, 10, P.st1);                        // 兜の角
+    px(g, 46, 0, P.st3, 4, 6);
+    // ひび割れ（古さ）
+    px(g, 44, 44, P.st0, 2, 12); px(g, 45, 50, P.st0, 6, 2);
+    px(g, 38, 60, P.st0, 2, 9); px(g, 58, 52, P.st0, 2, 10);
+    outline(c, P.out);
+    return c;
+  }
+
   /* =====================================================================
      初期化
      ===================================================================== */
@@ -1317,6 +1395,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
+      serpent: eSerpent(), statue: eStatue(),
     };
   };
 })();

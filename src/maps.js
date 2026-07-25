@@ -367,6 +367,12 @@
     g.set(34, 23, '$');
     // 東：みなとまちの入口（街道から脇道でつなぐ）
     g.hline(26, 35, 20, ',');
+    // 北東の岬：ふるい とうだい
+    g.hline(20, 36, 9, ',');
+    g.vline(36, 6, 9, ',');
+    g.rect(34, 4, 5, 3, '#');
+    g.set(36, 6, 'D');
+    g.set(33, 10, 'S');
     g.rect(33, 18, 5, 2, 'R'); g.rect(33, 18, 5, 1, 'r');
     g.set(35, 19, ','); g.set(35, 20, 'V');
     g.set(31, 21, 'S');
@@ -389,6 +395,8 @@
         { x: 8, y: 8, type: 'chest', id: 'f1', item: 'yakusou', n: 2 },
         { x: 34, y: 23, type: 'chest', id: 'f2', gold: 60 },
         { x: 35, y: 20, type: 'warp', to: 'port', tx: 11, ty: 18, dir: 0 },
+        { x: 36, y: 6, type: 'warp', to: 'tower1', tx: 8, ty: 14, dir: 3 },
+        { x: 33, y: 10, type: 'sign', text: 'きたひがし →「ふるい とうだい」\n　５ねんまえから とじられている' },
         { x: 31, y: 21, type: 'sign', text: 'ひがし →「みなとまち シオカゼ」' },
       ],
     };
@@ -603,6 +611,90 @@
     };
   }
 
+  /* =====================================================================
+     ふるい とうだい（東の岬）— 学者ガレンが「支配の輪」を研究していた廃墟
+     1階 18x16 ／ 最上階 14x12
+     ===================================================================== */
+  function buildTower1() {
+    const g = new Grid(18, 16, '#');
+    g.rect(2, 2, 14, 12, '=');                     // 大部屋
+    g.rect(6, 6, 6, 4, '#');                       // 中央の柱（回り込める）
+    g.set(8, 15, 'D');                             // 外へ
+    g.set(8, 14, '='); g.set(9, 14, '=');
+    g.set(3, 2, '<'); // 上階への階段（左上）
+    g.set(14, 3, '$');
+    // 装飾
+    g.set(2, 2, 't'); g.set(15, 2, 't'); g.set(2, 13, 't'); g.set(15, 13, 't');
+    g.set(4, 5, 'k'); g.set(13, 5, 'k'); g.set(4, 11, 'b'); g.set(13, 11, 'p');
+    g.set(6, 12, 'h'); g.set(11, 12, 'h');
+    return {
+      id: 'tower1', name: 'ふるい とうだい １かい', rows: g.rows(),
+      enc: G.ENC.tower1, indoor: true,
+      npcs: [],
+      events: [
+        { x: 8, y: 15, type: 'warp', to: 'field', tx: 36, ty: 9, dir: 0 },
+        { x: 3, y: 2, type: 'warp', to: 'tower2', tx: 7, ty: 10, dir: 3 },
+        { x: 14, y: 3, type: 'chest', id: 't1', gold: 180 },
+        {
+          x: 9, y: 12, type: 'read', id: 'g1',
+          text: 'かべに はりつけられた けいこく――\n\n'
+              + '「この とうだいは とじられた。\n'
+              + 'なかの ものを もちださぬこと。\n'
+              + '　　　　　シオカゼ ふなおさ」',
+          again: 'とじられた とうだいの けいこく。',
+        },
+        {
+          x: 5, y: 8, type: 'read', id: 'g2',
+          text: 'ゆかに ちらばった けんきゅうメモ――\n\n'
+              + '「わは ちからを つたえる。\n'
+              + 'だが こころまでは しばれぬ。\n'
+              + 'にの わが いる」',
+          again: 'ちらばった けんきゅうメモ。',
+        },
+      ],
+    };
+  }
+
+  function buildTower2() {
+    const g = new Grid(14, 12, '#');
+    g.rect(2, 2, 10, 8, '=');
+    g.set(7, 10, '>');                             // 下階へ
+    g.set(3, 3, 'h'); g.set(10, 3, 'h');           // 書棚
+    g.set(2, 6, 'a'); g.set(11, 6, 'a');           // 机
+    g.set(3, 8, 't'); g.set(10, 8, 't');           // 松明
+    g.set(5, 3, '$'); g.set(8, 3, '$');
+    return {
+      id: 'tower2', name: 'とうだい さいじょうかい', rows: g.rows(),
+      enc: G.ENC.tower2, indoor: true,
+      npcs: [],
+      events: [
+        { x: 7, y: 10, type: 'warp', to: 'tower1', tx: 3, ty: 3, dir: 0 },
+        { x: 5, y: 3, type: 'chest', id: 't2', weapon: 5 },
+        { x: 8, y: 3, type: 'chest', id: 't3', armor: 5 },
+        {
+          x: 7, y: 6, type: 'read', id: 'g3',
+          text: 'ひらかれたままの けんきゅうにっし――\n\n'
+              + '「いちの わは りゅうに はめた。\n'
+              + 'せいぎょは しっぱいした。\n'
+              + 'あれは もう わたしの ものでは ない」\n\n'
+              + '「にの わは まだ てもとに ある。\n'
+              + 'こんどは しくじらぬ」',
+          again: 'ひらかれたままの けんきゅうにっし。',
+        },
+        {
+          x: 3, y: 6, type: 'read', id: 'g4',
+          text: 'ちいさな てちょう――\n\n'
+              + '「むらの わかものが ３にん\n'
+              + 'たずねてきた。ぬしの ことを\n'
+              + 'しらべていると いう」\n\n'
+              + '「きたの ほらあなへ むかわせた。\n'
+              + 'ちょうど よい ためしに なる」',
+          again: 'ちいさな てちょう。',
+        },
+      ],
+    };
+  }
+
   G.buildMaps = function () {
     G.MAPS = {
       town: buildTown(),
@@ -610,6 +702,8 @@
       field: buildField(),
       cave1: buildCave1(),
       cave2: buildCave2(),
+      tower1: buildTower1(),
+      tower2: buildTower2(),
     };
     // 幅の検証（構造上ズレないはずだが、編集ミスを早期に出す）
     Object.keys(G.MAPS).forEach(function (k) {

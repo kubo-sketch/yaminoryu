@@ -33,6 +33,7 @@
     { name: 'どうのつるぎ', atk: 8, price: 90 },
     { name: 'てつのやり', atk: 14, price: 280 },
     { name: 'はがねのつるぎ', atk: 22, price: 620 },
+    { name: 'うみなりのやり', atk: 25, price: 0 },     // 灯台の最上階でのみ入手
   ];
   G.ARMORS = [
     { name: 'たびのふく', atk: 0, def: 0, price: 0 },
@@ -40,6 +41,7 @@
     { name: 'かわのよろい', def: 8, price: 120 },
     { name: 'くさりかたびら', def: 15, price: 380 },
     { name: 'てつのよろい', def: 24, price: 800 },
+    { name: 'りゅうのローブ', def: 27, price: 0 },     // 灯台の最上階でのみ入手
   ];
 
   /* ---------------- 道具 ---------------- */
@@ -150,6 +152,17 @@
       scale: 0.96, flee: true, max: 2, spell: { id: 'mera', rate: 0.45 },
       weak: 'thunder', resist: 'fire',
     },
+    serpent: {
+      name: 'うみへび', spr: 'serpent', hp: 48, atk: 29, def: 14, exp: 32, gold: 45,
+      scale: 0.96, flee: true, max: 2, agi: 1.2,
+      weak: 'thunder', resist: 'ice',
+    },
+    statue: {
+      // しゅび力が高く、素で殴ると通らない。ルカニを覚える意味を持たせる敵
+      name: 'うごくせきぞう', spr: 'statue', hp: 70, atk: 32, def: 32, exp: 45, gold: 60,
+      scale: 0.98, flee: true, max: 2,
+      weak: 'thunder', resist: 'fire',
+    },
     // 中ボス。洞窟1Fの奥を守っていて、倒すと2Fへの鍵を落とす
     gatekeeper: {
       name: 'もんばんの がいこつ', spr: 'skeleton', hp: 118, atk: 32, def: 17, exp: 70, gold: 120,
@@ -185,6 +198,8 @@
     field_far: { rate: 0.07, table: ['slime', 'bat', 'bat', 'goblin', 'goblin', 'skeleton'] },
     cave1: { rate: 0.085, table: ['bat', 'goblin', 'goblin', 'skeleton', 'skeleton', 'mage'] },
     cave2: { rate: 0.10, table: ['goblin', 'skeleton', 'skeleton', 'mage', 'mage'] },
+    tower1: { rate: 0.085, table: ['serpent', 'serpent', 'skeleton', 'statue', 'mage'] },
+    tower2: { rate: 0.10, table: ['serpent', 'statue', 'statue', 'mage'] },
   };
 
   /* ---------------- 称号（結果表示用） ---------------- */

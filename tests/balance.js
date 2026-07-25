@@ -132,7 +132,7 @@ function simBattle(p, group) {
    ===================================================================== */
 console.log('=== 雑魚戦の勝率（やくそう6個持ち・N=2000）===');
 console.log('敵\\Lv        ' + [1, 2, 3, 4, 5, 6, 7, 8].map((l) => 'Lv' + String(l).padEnd(4)).join(''));
-const zako = ['slime', 'bat', 'goblin', 'skeleton', 'mage'];
+const zako = ['slime', 'bat', 'goblin', 'skeleton', 'mage', 'serpent', 'statue'];
 zako.forEach((id) => {
   const row = [1, 2, 3, 4, 5, 6, 7, 8].map((lv) => {
     // その頃に現実的な装備
@@ -167,6 +167,25 @@ kits.forEach((k) => {
   console.log('  ' + cells.map((c) => 'Lv' + c.lv + ': ' + String(Math.round(c.rate * 100)).padStart(3) + '%').join('   '));
   console.log('  平均ターン ' + cells.map((c) => (c.turns ? c.turns.toFixed(1) : '—')).join('  '));
 });
+
+/* =====================================================================
+   2.4) 灯台の装備を取ったあと、ボス戦が作業にならないか
+   ===================================================================== */
+console.log('\n=== 灯台装備でのボス戦（壊れていないかの確認）===');
+[{ label: 'はがねのつるぎ＋てつのよろい（買える最強）', w: 4, a: 4 },
+ { label: 'うみなりのやり＋りゅうのローブ（灯台の報酬）', w: 5, a: 5 }]
+  .forEach((k) => {
+    const cells = [6, 7, 8].map((lv) => {
+      let win = 0, tSum = 0;
+      for (let i = 0; i < 3000; i++) {
+        const r = simBattle(mkPlayer(lv, k.w, k.a), makeGroup('boss', true));
+        if (r.win) { win++; tSum += r.turns; }
+      }
+      return 'Lv' + lv + ': ' + String(Math.round((win / 3000) * 100)).padStart(3) + '%'
+        + '(' + (win ? (tSum / win).toFixed(1) : '-') + 'T)';
+    });
+    console.log('  ' + k.label + '\n    ' + cells.join('  '));
+  });
 
 /* =====================================================================
    2.5) 中ボス「もんばんの がいこつ」
