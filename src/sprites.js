@@ -1704,33 +1704,35 @@
       px(g, 37 + i * 5, 64 + (i % 2), '#cfc9a8', 4, 18);
       px(g, 37 + i * 5, 64 + (i % 2), '#efe9c8', 4, 3);
     }
-    for (let i = 0; i < 36; i++) {                   // 長い首
-      const t = i / 35;
-      const x = 48 + Math.round(Math.sin(t * 1.0) * 4);
-      const w = 21 - Math.round(t * 9);
-      px(g, x - (w >> 1), 54 - i, W1, w, 1);
-      px(g, x + (w >> 1) - 5, 54 - i, W0, 5, 1);
-      px(g, x - (w >> 1), 54 - i, W2, 4, 1);
+    // 首は 42px。頭を小さめにして、首の長さを見せる
+    for (let i = 0; i < 42; i++) {
+      const t = i / 41;
+      const x = 48 + Math.round(Math.sin(t * 0.9) * 5);
+      const w = 22 - Math.round(t * 12);
+      px(g, x - (w >> 1), 56 - i, W1, w, 1);
+      px(g, x + (w >> 1) - 5, 56 - i, W0, 5, 1);
+      px(g, x - (w >> 1), 56 - i, W2, 4, 1);
+      if (i % 3 === 0) px(g, x - (w >> 1) + 2, 56 - i, W3, 3, 1);
     }
-    for (let i = 0; i < 11; i++) {
-      const t = i / 10, x = 48 + Math.round(Math.sin(t * 1.0) * 4);
-      tri(g, x + 8, 50 - i * 4, 3, 7, '#efe9c8');
+    for (let i = 0; i < 13; i++) {
+      const t = i / 12, x = 48 + Math.round(Math.sin(t * 0.9) * 5);
+      tri(g, x + 8 - Math.round(t * 3), 52 - i * 4, 3, 7, '#efe9c8');
     }
-    disc(g, 48, 14, 14, W1);                         // 頭
-    disc(g, 43, 9, 9, W2);
-    disc(g, 41, 7, 4, W4);
-    ellipse(g, 50, 24, 15, 6, W1);
-    ellipse(g, 50, 26, 14, 3, W0);
-    tri(g, 33, -6, 6, 20, '#efe9c8'); tri(g, 63, -6, 6, 20, '#efe9c8');
-    tri(g, 27, 4, 5, 14, '#dfd9b8'); tri(g, 69, 4, 5, 14, '#dfd9b8');
-    px(g, 37, 10, '#2a2a3a', 11, 8);                 // 目（金でなく静かな青白）
-    px(g, 38, 11, '#6fc8e8', 9, 6);
-    px(g, 41, 12, '#ffffff', 4, 4);
-    px(g, 51, 10, '#2a2a3a', 11, 8);
-    px(g, 52, 11, '#6fc8e8', 9, 6);
-    px(g, 55, 12, '#ffffff', 4, 4);
-    px(g, 38, 30, P.out, 24, 4);
-    for (let i = 0; i < 7; i++) px(g, 39 + i * 3.4, 27, '#f6f4ee', 3, 5);
+    disc(g, 51, 11, 11, W1);                         // 頭（小さめ・前寄り）
+    disc(g, 47, 7, 7, W2);
+    disc(g, 45, 5, 3, W4);
+    ellipse(g, 54, 19, 13, 5, W1);                   // 口吻を前に出す
+    ellipse(g, 54, 21, 12, 3, W0);
+    tri(g, 38, -9, 6, 20, '#efe9c8'); tri(g, 64, -9, 6, 20, '#efe9c8');
+    tri(g, 32, 0, 5, 14, '#dfd9b8'); tri(g, 70, 0, 5, 14, '#dfd9b8');
+    px(g, 42, 7, '#2a2a3a', 10, 7);                  // 目（静かな青白）
+    px(g, 43, 8, '#6fc8e8', 8, 5);
+    px(g, 46, 9, '#ffffff', 3, 3);
+    px(g, 54, 7, '#2a2a3a', 10, 7);
+    px(g, 55, 8, '#6fc8e8', 8, 5);
+    px(g, 58, 9, '#ffffff', 3, 3);
+    px(g, 43, 24, P.out, 23, 4);
+    for (let i = 0; i < 7; i++) px(g, 44 + i * 3.2, 21, '#f6f4ee', 3, 5);
     px(g, 25, 62, W1, 15, 26); px(g, 57, 62, W1, 15, 26);   // 脚
     px(g, 25, 62, W0, 5, 26); px(g, 67, 62, W0, 5, 26);
     for (let i = 0; i < 3; i++) {
