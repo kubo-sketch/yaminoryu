@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07080c">
+<title>やみのりゅう — はじまりの村と ほらあなの ぬし</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;padding:0;height:100%;background:#07080c;color:#f2f0e5;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+    overscroll-behavior:none;touch-action:manipulation;
+    user-select:none;-webkit-user-select:none;
+  }
+  #wrap{
+    height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  #stage{position:relative;flex:0 0 auto}
+  canvas#screen{
+    display:block;
+    image-rendering:pixelated;image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;
+    background:#000;border-radius:4px;
+    box-shadow:0 0 0 2px #2a2f42, 0 18px 50px rgba(0,0,0,.7);
+    width:min(calc(100vw - 16px), calc((100dvh - 200px) * 720 / 624));
+    height:auto;aspect-ratio:720 / 624;
+  }
+  /* 画面右上の小ボタン */
+  #tools{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+  #tools button{
+    width:34px;height:34px;border:0;border-radius:6px;cursor:pointer;
+    background:rgba(10,12,22,.72);color:#f2f0e5;font-size:15px;line-height:1;
+    border:1px solid #39405a;
+  }
+  #tools button.off{opacity:.5}
+
+  /* 仮想パッド（タッチ端末のみ） */
+  #pad{display:none;width:min(100%,520px);justify-content:space-between;align-items:center;gap:18px}
+  #dpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px)}
+  #btns{display:flex;gap:14px;align-items:center}
+  .k{
+    display:flex;align-items:center;justify-content:center;
+    background:#1a2033;border:1px solid #39405a;border-radius:10px;
+    color:#c8d0e0;font-size:19px;font-weight:700;
+  }
+  .k.on{background:#39456b;color:#fff}
+  #dpad .k{width:54px;height:54px}
+  .round{width:66px;height:66px;border-radius:50%;font-size:17px}
+  .sp{background:transparent;border:0}
+  @media (hover:none){ #pad{display:flex} }
+  /* 縦長端末ではパッドのぶん画面を小さく */
+  @media (hover:none){
+    canvas#screen{width:min(calc(100vw - 16px), calc((100dvh - 250px) * 720 / 624))}
+  }
+  #hint{font-size:12px;color:#6d7484;text-align:center;line-height:1.7}
+  @media (hover:none){ #hint{display:none} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="screen" width="720" height="624"></canvas>
+    <div id="tools">
+      <button id="mute" title="おと">🔊</button>
+      <button id="reset" title="きろくをけす">🗑</button>
+    </div>
+  </div>
+
+  <div id="pad">
+    <div id="dpad">
+      <div class="sp"></div><div class="k" data-key="up">▲</div><div class="sp"></div>
+      <div class="k" data-key="left">◀</div><div class="sp"></div><div class="k" data-key="right">▶</div>
+      <div class="sp"></div><div class="k" data-key="down">▼</div><div class="sp"></div>
+    </div>
+    <div id="btns">
+      <div class="k round" data-key="cancel">メニュー</div>
+      <div class="k round" data-key="ok">けってい</div>
+    </div>
+  </div>
+
+  <div id="hint">
+    やじるし／WASD＝いどう　　Ｚ・スペース・Enter＝はなす・しらべる・けってい　　Ｘ・Esc＝メニュー・とじる
+  </div>
+</div>
+
+<script src="src/sprites.js"></script>
+<script src="src/data.js"></script>
+<script src="src/maps.js"></script>
+<script src="src/engine.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/field.js"></script>
+<script src="src/battle.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
