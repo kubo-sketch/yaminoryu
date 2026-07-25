@@ -366,7 +366,7 @@
     c.fillStyle = '#241a2e';
     c.fillRect(0, 466, G.W, G.H - 466);
     // 主人公の後ろ姿
-    const img = G.SPR.hero[3][0];
+    const img = (G.heroSprite ? G.heroSprite() : G.SPR.hero)[3][0];
     c.drawImage(img, 0, 0, 16, G.CH, (G.W / 2 - 48) | 0, 332, 96, 144);
     if (G.msg.active) G.msg.draw();
   };

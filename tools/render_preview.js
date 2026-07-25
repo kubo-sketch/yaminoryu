@@ -320,7 +320,7 @@ function renderMap(file, mapId, px, py, opt) {
     if (sx < -T * 2 || sy < -T * 2 || sx > cv.width + T || sy > cv.height + T) return;
     actors.push({ x: sx, y: sy, img: G.SPR[n.spr][n.dir][0] });
   });
-  actors.push({ x: px * T - camX, y: py * T - camY, img: G.SPR.hero[0][0] });
+  actors.push({ x: px * T - camX, y: py * T - camY, img: (G.SPR.hero2 || G.SPR.hero)[0][0] });
   actors.sort((a, b) => a.y - b.y);
   actors.forEach((a) => {                       // 落ち影（楕円を手で塗る）
     const cx = a.x + T / 2, cy = a.y + T - 5, rx = T * 0.30, ry = T * 0.12;

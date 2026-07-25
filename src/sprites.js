@@ -1776,7 +1776,11 @@
     };
 
     G.SPR = {
+      // 主人公は防具のランクで見た目が変わる（0=布 → 3=鎧）
       hero: makeChar({ hair: P.wd2, hairL: P.wd4, hairD: P.wd0, body: 'bl', belt: P.wd1, boot: P.wd1 }),
+      hero1: makeChar({ hair: P.wd2, hairL: P.wd4, hairD: P.wd0, body: 'gn', belt: P.wd1, boot: P.wd1 }),
+      hero2: makeChar({ hair: P.wd2, hairL: P.wd4, hairD: P.wd0, body: 'sl', belt: P.gd2, boot: P.wd0 }),
+      hero3: makeChar({ hair: P.wd2, hairL: P.wd4, hairD: P.wd0, body: 'gd', belt: P.re2, boot: P.wd0 }),
       elder: makeChar({ hair: P.bn3, hairL: P.bn4, hairD: P.bn1, body: 'pp', beard: 1, cape: 'pp' }),
       king: makeChar({ hair: P.bn3, hairL: P.bn4, hairD: P.bn1, body: 're', crown: 1, beard: 1, cape: 're' }),
       villager: makeChar({ hair: P.wd1, hairL: P.wd3, hairD: P.wd0, body: 'gn', boot: P.wd0 }),

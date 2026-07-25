@@ -345,7 +345,7 @@
         if (set) actors.push({ x: sx, y: sy, img: set[n.dir][0] });
       });
       const psx = p.rx - cam.x, psy = p.ry - cam.y;   // 松明の中心にも使う
-      actors.push({ x: psx, y: psy, img: G.SPR.hero[p.dir][p.frame] });
+      actors.push({ x: psx, y: psy, img: G.heroSprite()[p.dir][p.frame] });
       actors.sort(function (a, b) { return a.y - b.y; });
 
       // 落ち影を先にまとめて敷く（キャラ同士で影が上書きし合わないように）
@@ -454,6 +454,13 @@
       G.msg.draw();
       if (G.modal.active) G.modal.draw();
     },
+  };
+
+  // 防具のランクで主人公の見た目を切り替える。装備した実感を出す
+  G.heroSprite = function () {
+    const a = (G.player && G.player.armor) || 0;
+    const key = a >= 5 ? 'hero3' : a >= 4 ? 'hero3' : a >= 3 ? 'hero2' : a >= 2 ? 'hero1' : 'hero';
+    return G.SPR[key] || G.SPR.hero;
   };
 
   /* =====================================================================
