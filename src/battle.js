@@ -368,9 +368,11 @@
       c.fillStyle = 'rgba(255,255,255,0.05)';
       c.fillRect(0, 396, G.W, 3);
 
-      // 敵
+      // 敵。地面(y=400)から上へ伸ばすので、敵名ウィンドウ(〜94px)に
+      // かからない高さで頭打ちにする。これが無いと大きい敵の頭が切れる。
       const img = G.ENEMY[d.spr];
-      const sc = (d.scale || 2) * G.S;
+      const MAXH = 296;
+      const sc = Math.min((d.scale || 2) * G.S, MAXH / img.height);
       const w = img.width * sc, h = img.height * sc;
       let ex = (G.W - w) / 2;
       let ey = 400 - h;

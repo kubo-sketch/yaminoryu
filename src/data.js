@@ -108,27 +108,27 @@
   G.ENEMIES = {
     slime: {
       name: 'スライム', spr: 'slime', hp: 7, atk: 6, def: 3, exp: 2, gold: 4,
-      scale: 1.6, flee: true,
+      scale: 1.35, flee: true,
     },
     bat: {
       name: 'おおコウモリ', spr: 'bat', hp: 11, atk: 9, def: 4, exp: 4, gold: 7,
-      scale: 1.7, flee: true, agi: 1.3,
+      scale: 1.45, flee: true, agi: 1.3,
     },
     goblin: {
       name: 'ゴブリン', spr: 'goblin', hp: 18, atk: 14, def: 7, exp: 9, gold: 13,
-      scale: 1.9, flee: true,
+      scale: 1.6, flee: true,
     },
     skeleton: {
       name: 'がいこつへい', spr: 'skeleton', hp: 28, atk: 21, def: 12, exp: 18, gold: 30,
-      scale: 2.0, flee: true,
+      scale: 1.7, flee: true,
     },
     mage: {
       name: 'やみのまどうし', spr: 'mage', hp: 24, atk: 15, def: 9, exp: 24, gold: 40,
-      scale: 2.0, flee: true, spell: { id: 'mera', rate: 0.45 },
+      scale: 1.75, flee: true, spell: { id: 'mera', rate: 0.45 },
     },
     boss: {
       name: 'やみのりゅう', spr: 'boss', hp: 150, atk: 30, def: 20, exp: 250, gold: 400,
-      scale: 2.6, flee: false, boss: true,
+      scale: 1.55, flee: false, boss: true,
       spell: { id: 'begirama', rate: 0.25 },
       breath: 0.2,                                   // ほのおのいき（しゅび力を無視）
     },
