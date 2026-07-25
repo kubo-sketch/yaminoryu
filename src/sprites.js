@@ -1456,6 +1456,43 @@
     return c;
   }
 
+  function eWolf() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 四つ足・前傾。低く長いシルエットで「獣」だと分からせる
+    px(g, 22, 62, P.st1, 10, 26); px(g, 62, 62, P.st1, 10, 26);   // 後脚
+    px(g, 30, 66, P.st2, 9, 22); px(g, 54, 66, P.st2, 9, 22);     // 前脚
+    for (let i = 0; i < 3; i++) {
+      px(g, 20 + i * 4, 86, P.bn2, 3, 5); px(g, 60 + i * 4, 86, P.bn2, 3, 5);
+      px(g, 29 + i * 3, 86, P.bn2, 3, 5); px(g, 53 + i * 3, 86, P.bn2, 3, 5);
+    }
+    ellipse(g, 47, 56, 27, 17, P.st1);                            // 胴（横長）
+    ellipse(g, 40, 50, 19, 12, P.st2);
+    ellipse(g, 36, 46, 10, 6, P.st3);
+    ellipse(g, 47, 66, 22, 8, P.st0);
+    for (let i = 0; i < 14; i++) px(g, 24 + i * 4, 40 + ((i * 5) % 9), P.st3, 3, 2);  // 毛
+    // 尾（後ろへ跳ね上げる）
+    for (let i = 0; i < 18; i++) {
+      const w = Math.max(3, 11 - Math.round(i * 0.4));
+      px(g, 72 + i, 50 - Math.round(Math.sin(i * 0.16) * 12), P.st1, 2, w);
+      px(g, 72 + i, 50 - Math.round(Math.sin(i * 0.16) * 12), P.st2, 2, 3);
+    }
+    // 頭（前へ突き出す）
+    ellipse(g, 26, 34, 15, 13, P.st1);
+    ellipse(g, 22, 30, 10, 8, P.st2);
+    ellipse(g, 14, 38, 11, 6, P.st1);                             // 鼻づら
+    ellipse(g, 13, 40, 9, 3, P.st0);
+    px(g, 6, 37, P.out, 5, 4);                                    // 鼻
+    tri(g, 22, 14, 5, 12, P.st1); tri(g, 34, 14, 5, 12, P.st1);   // 耳
+    tri(g, 22, 17, 3, 8, P.st0); tri(g, 34, 17, 3, 8, P.st0);
+    px(g, 14, 31, P.gd3, 6, 5); px(g, 25, 31, P.gd3, 6, 5);       // 目
+    px(g, 15, 32, P.out, 4, 4); px(g, 26, 32, P.out, 4, 4);
+    px(g, 16, 33, P.gd4, 1, 1); px(g, 27, 33, P.gd4, 1, 1);
+    px(g, 10, 44, P.out, 18, 4);                                  // 口
+    for (let i = 0; i < 4; i++) px(g, 11 + i * 5, 43, P.bn4, 3, 5);
+    outline(c, P.out);
+    return c;
+  }
+
   /* ---- ガレン（黒幕・人型のラスボス） ----
      まどうしと差別化する：あちらは顔が影で匿名的、こちらは素顔の老人。
      人間が黒幕であることを一目で伝える。浮遊する「二の輪」を目印にする。 */
@@ -1567,7 +1604,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
-      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(),
+      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(), wolf: eWolf(),
     };
   };
 })();

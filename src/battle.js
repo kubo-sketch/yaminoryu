@@ -289,7 +289,13 @@
       };
       if (!this.canFlee) { fail(); return; }
       const agi = this.living().some(function (e) { return e.def.agi; });
-      if (Math.random() < (agi ? 0.45 : 0.68)) {
+      // 追い詰められているほど逃げやすい。全滅の一歩手前で
+      // 「逃げられずに死ぬ」を減らすための救済
+      let rate = agi ? 0.45 : 0.68;
+      const ratio = p.hp / p.maxhp;
+      if (ratio < 0.25) rate += 0.18;
+      else if (ratio < 0.5) rate += 0.08;
+      if (Math.random() < Math.min(0.92, rate)) {
         G.audio.se('flee');
         this.phase = 'over';
         this.say(p.name + 'は にげだした！', function () { G.endBattle('flee'); });

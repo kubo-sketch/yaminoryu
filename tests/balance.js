@@ -132,7 +132,7 @@ function simBattle(p, group) {
    ===================================================================== */
 console.log('=== 雑魚戦の勝率（やくそう6個持ち・N=2000）===');
 console.log('敵\\Lv        ' + [1, 2, 3, 4, 5, 6, 7, 8].map((l) => 'Lv' + String(l).padEnd(4)).join(''));
-const zako = ['slime', 'bat', 'goblin', 'skeleton', 'mage', 'serpent', 'statue'];
+const zako = ['slime', 'bat', 'spider', 'goblin', 'wolf', 'skeleton', 'mage', 'serpent', 'statue'];
 zako.forEach((id) => {
   const row = [1, 2, 3, 4, 5, 6, 7, 8].map((lv) => {
     // その頃に現実的な装備

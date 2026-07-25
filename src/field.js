@@ -375,6 +375,42 @@
         c.fillRect(0, 0, G.W, G.H);
       }
 
+      // 天候（マップの weather 指定）。空気の density を変えて場所の性格を出す
+      if (m.weather === 'rain') {
+        c.strokeStyle = 'rgba(150,180,225,0.42)';
+        c.lineWidth = 2;
+        for (let i = 0; i < 70; i++) {
+          const sp = 520 + (i % 5) * 130;
+          const x = ((i * 173) + (G.time * 0.10)) % (G.W + 200) - 100 + (G.time * 0.05 % 40);
+          const y = ((i * 97) + (G.time * sp / 1000)) % (G.H + 60) - 30;
+          c.beginPath();
+          c.moveTo(x, y); c.lineTo(x - 7, y + 22);
+          c.stroke();
+        }
+        c.fillStyle = 'rgba(30,42,70,0.24)';
+        c.fillRect(0, 0, G.W, G.H);
+        // 地面の跳ね返り
+        c.fillStyle = 'rgba(190,215,245,0.30)';
+        for (let i = 0; i < 22; i++) {
+          const t = (G.time / 620 + i * 0.31) % 1;
+          const x = (i * 311) % G.W, y = (i * 197) % G.H;
+          const r = t * 7;
+          if (t < 0.55) { c.fillRect(x - r, y, r * 2, 1); }
+        }
+      } else if (m.weather === 'fog') {
+        for (let i = 0; i < 7; i++) {
+          const w = 460 + i * 70, h = 130 + (i % 3) * 50;
+          const x = ((G.time * (0.020 + i * 0.004) + i * 430) % (G.W + w * 2)) - w;
+          const y = ((i * 173) % (G.H + h)) - h / 2;
+          c.fillStyle = 'rgba(212,222,236,0.11)';
+          c.beginPath();
+          c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+          c.fill();
+        }
+        c.fillStyle = 'rgba(206,216,232,0.13)';
+        c.fillRect(0, 0, G.W, G.H);
+      }
+
       // 環境レイヤー：地面より遅く流れる雲の影／洞窟の光の粉塵。
       // カメラと違う速度で動かすことで、平らな見下ろし画面に奥行きが出る。
       if (m.indoor) {

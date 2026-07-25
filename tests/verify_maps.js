@@ -93,7 +93,8 @@ while (q.length) {
     const ch = m.rows[ny] && m.rows[ny][nx];
     if (!ch) return;
     const nev = (m.events || []).find((e) => e.x === nx && e.y === ny);
-    if (nev && (nev.type === 'chest' || nev.type === 'sign'))
+    // 隣に立って調べられるもの（看板・宝箱・読み物・拾得物）
+    if (nev && ['chest', 'sign', 'read', 'pickup'].indexOf(nev.type) >= 0)
       reachedEvents.add(cur.map + ':' + nev.type + (nev.id ? '/' + nev.id : ''));
     const npc = (m.npcs || []).find((n) => n.x === nx && n.y === ny);
     if (npc) reachedEvents.add(cur.map + ':npc/' + npc.spr);

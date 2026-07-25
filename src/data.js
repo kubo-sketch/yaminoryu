@@ -170,6 +170,11 @@
       scale: 0.98, flee: true, max: 2,
       weak: 'thunder', resist: 'fire',
     },
+    wolf: {
+      name: 'やまいぬ', spr: 'wolf', hp: 34, atk: 24, def: 11, exp: 22, gold: 26,
+      scale: 0.90, flee: true, max: 3, agi: 1.35,
+      weak: 'fire', resist: 'thunder',
+    },
     // 中ボス。洞窟1Fの奥を守っていて、倒すと2Fへの鍵を落とす
     gatekeeper: {
       name: 'もんばんの がいこつ', spr: 'skeleton', hp: 118, atk: 32, def: 17, exp: 70, gold: 120,
@@ -219,6 +224,7 @@
     cave2: { rate: 0.10, table: ['goblin', 'skeleton', 'skeleton', 'mage', 'mage'] },
     tower1: { rate: 0.085, table: ['serpent', 'serpent', 'skeleton', 'statue', 'mage'] },
     tower2: { rate: 0.10, table: ['serpent', 'statue', 'statue', 'mage'] },
+    pass: { rate: 0.09, table: ['wolf', 'wolf', 'bat', 'skeleton', 'statue'] },
   };
 
   /* ---------------- 称号（結果表示用） ---------------- */
