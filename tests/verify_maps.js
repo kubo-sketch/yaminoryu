@@ -52,7 +52,7 @@ for (const id of Object.keys(G.MAPS)) {
 
   // 5) 隣接して調べるもの（看板・宝箱）に近づけるか
   (m.events || []).forEach((e) => {
-    if (e.type !== 'sign' && e.type !== 'chest') return;
+    if (['sign', 'chest', 'read', 'pickup'].indexOf(e.type) < 0) return;
     const around = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => {
       const ch = m.rows[e.y + dy] && m.rows[e.y + dy][e.x + dx];
       return ch && G.TILEDEF[ch] && G.TILEDEF[ch].walk;

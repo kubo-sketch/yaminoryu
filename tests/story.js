@@ -1,0 +1,115 @@
+/* =====================================================================
+   story.js — シナリオの進行が破綻していないかを機械的に確かめる
+   ---------------------------------------------------------------------
+   ・受注前に証拠品を取れてしまわないか（順序の逆転）
+   ・受注 → 発見 → 報告 で必ず完了に到達するか
+   ・報酬が二重取りできないか
+   ・読み物がすべて到達可能な位置にあるか
+   ・エンディングが達成状況で分岐するか
+   ===================================================================== */
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.join(__dirname, '..', 'src');
+
+global.window = {};
+global.document = {
+  createElement: () => ({ getContext: () => ({}) }),
+  getElementById: () => null,
+  querySelectorAll: () => ({ forEach: () => {} }),
+};
+['data.js', 'maps.js'].forEach((f) => new Function(fs.readFileSync(path.join(ROOT, f), 'utf8'))());
+const G = global.window.G;
+G.buildMaps();
+
+let err = 0;
+const fail = (m) => { console.log('  ✗ ' + m); err++; };
+const ok = (m) => console.log('  ✓ ' + m);
+
+/* ---- クエスト進行のシミュレーション ---- */
+// 実ロジック（field.pickUp / 墓守の talk）を再現して順序を確かめる
+G.flags = { q: {}, read: {}, chests: {} };
+G.player = { name: 'ユウ', gold: 0, items: {} };
+G.audio = { se: () => {} };
+
+const cave1 = G.MAPS.cave1;
+const keepsake = cave1.events.find((e) => e.type === 'pickup');
+if (!keepsake) fail('洞窟に証拠品(pickup)が置かれていない');
+
+function tryPickup() {
+  const q = G.flags.q;
+  if (keepsake.needQuest && (q[keepsake.needQuest] || 0) < 1) return 'locked';
+  if (q[keepsake.setQuest] >= keepsake.setValue) return 'taken';
+  q[keepsake.setQuest] = keepsake.setValue;
+  return 'got';
+}
+// 墓守 NPC の talk をそのまま呼ぶ
+const keeper = G.MAPS.town.npcs.find((n) => n.spr === 'sage' && typeof n.talk === 'function');
+if (!keeper) fail('町に墓守(依頼人)がいない');
+const talk = () => keeper.talk();
+
+console.log('=== クエスト「かえらぬ3人」===');
+// 1) 受注前は拾えない
+if (tryPickup() !== 'locked') fail('受注前に証拠品を拾えてしまう（順序が逆転する）');
+else ok('受注前は拾えない');
+
+// 2) 依頼人に話すと受注
+talk();
+if ((G.flags.q.missing || 0) < 1) fail('話しても受注状態にならない');
+else ok('依頼人に話して受注');
+
+// 3) 受注後は拾える
+if (tryPickup() !== 'got') fail('受注後に証拠品を拾えない');
+else ok('証拠品を拾得');
+
+// 4) 二度目は拾えない
+if (tryPickup() !== 'taken') fail('証拠品を何度でも拾えてしまう');
+else ok('拾得は一度きり');
+
+// 5) 報告で完了し、報酬が入る
+const goldBefore = G.player.gold;
+talk();
+if (G.flags.q.missing < 3) fail('報告しても完了しない');
+else if (G.player.gold <= goldBefore) fail('報酬のゴールドが入らない');
+else if (!G.player.items.yakusou) fail('報酬のアイテムが入らない');
+else ok(`報告で完了（+${G.player.gold - goldBefore}G, やくそう×${G.player.items.yakusou}）`);
+
+// 6) 完了後に話しても報酬が増えない（二重取り防止）
+const g2 = G.player.gold, y2 = G.player.items.yakusou;
+talk(); talk();
+if (G.player.gold !== g2 || G.player.items.yakusou !== y2) fail('報酬を何度でも受け取れてしまう');
+else ok('報酬の二重取りなし');
+
+/* ---- 読み物がすべて到達可能な場所にあるか ---- */
+console.log('\n=== 読み物（竜の背景）===');
+const reads = [];
+for (const id of Object.keys(G.MAPS))
+  (G.MAPS[id].events || []).forEach((e) => { if (e.type === 'read') reads.push({ map: id, e }); });
+if (reads.length < 3) fail(`読み物が ${reads.length} 個しかない（3個以上を想定）`);
+reads.forEach(({ map, e }) => {
+  const m = G.MAPS[map];
+  const around = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => {
+    const ch = m.rows[e.y + dy] && m.rows[e.y + dy][e.x + dx];
+    return ch && G.TILEDEF[ch] && G.TILEDEF[ch].walk;
+  });
+  const here = G.TILEDEF[m.rows[e.y][e.x]];
+  if (!around && !(here && here.walk)) fail(`読み物 ${e.id} (${map} ${e.x},${e.y}) に近づけない`);
+  else ok(`${e.id} @ ${map}(${e.x},${e.y})`);
+});
+
+/* ---- エンディングが分岐するか ---- */
+console.log('\n=== エンディングの分岐 ===');
+// startEnding は main.js 内で DOM に触れるため、条件式だけを同じ形で確かめる
+function endingShape(flags) {
+  const lore = flags.read && flags.read.d1 && flags.read.d2 && flags.read.d3;
+  const quest = flags.q && flags.q.missing >= 3;
+  return { lore: !!lore, quest: !!quest };
+}
+const a = endingShape({ read: {}, q: {} });
+const b = endingShape({ read: { d1: 1, d2: 1, d3: 1 }, q: { missing: 3 } });
+if (a.lore || a.quest) fail('何もしていないのに分岐が立つ');
+else ok('未達成：通常エンド');
+if (!b.lore || !b.quest) fail('全部やっても分岐が立たない');
+else ok('全達成：真相＋後日談エンド');
+
+console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
+process.exit(err ? 1 : 0);

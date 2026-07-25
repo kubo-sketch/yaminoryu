@@ -36,6 +36,8 @@
     G.player = d.player;
     G.flags = d.flags || { chests: {} };
     if (!G.flags.chests) G.flags.chests = {};
+    if (!G.flags.q) G.flags.q = {};        // クエストの進行度
+    if (!G.flags.read) G.flags.read = {};  // 読んだ記録（日記など）
     // 後方互換（項目が増えたときに undefined で落ちないように）
     const p = G.player;
     if (p.kills === undefined) p.kills = 0;
@@ -54,7 +56,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, chests: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, chests: {}, q: {}, read: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -159,16 +161,39 @@
     const p = G.player;
     const min = Math.floor(p.playMs / 60000);
     const sec = Math.floor((p.playMs % 60000) / 1000);
-    G.msg.show([
-      'やみのりゅうは ちりとなって\nきえていった。',
-      'ほらあなに さしこむ ひかり。\nまものたちの けはいは\nもう どこにも ない。',
-      '村に もどると\nみんなが まちかまえていた。',
-      'そんちょう「よくやった ' + p.name + '。\nおまえは この村の ほこりだ」',
-      'こうして ' + p.name + 'の\nはじめての ぼうけんは おわった。',
-      'だが これは\nはじまりの村の はなしにすぎない。',
-      '── クリア ──\nレベル ' + p.lv + '　／　たおした まもの ' + p.kills + '\nあるいた ほすう ' + p.steps + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう',
-      'ボタンを おすと\nタイトルに もどります。',
-    ], function () { G.ending.done = true; });
+    const lore = G.flags.read && G.flags.read.d1 && G.flags.read.d2 && G.flags.read.d3;
+    const quest = G.flags.q && G.flags.q.missing >= 3;
+    const head = lore
+      ? ['やみのりゅうが たおれた とき、\nくびの くろい わが くだけた。',
+         'りゅうは いちど だけ\nしずかに ' + p.name + 'を みた。',
+         'その めは もう\nくるしんでは いなかった。',
+         'ひかりに なって きえる まえに――\n「……すまなかった」',
+         'ほらあなに さしこむ ひかり。\nまものたちの けはいは\nもう どこにも ない。']
+      : ['やみのりゅうは ちりとなって\nきえていった。',
+         'ほらあなに さしこむ ひかり。\nまものたちの けはいは\nもう どこにも ない。'];
+    const lines = head.slice();
+    lines.push('村に もどると\nみんなが まちかまえていた。');
+    lines.push('そんちょう「よくやった ' + p.name + '。\nおまえは この村の ほこりだ」');
+    // サブクエストを終えていれば、墓守の後日談が入る
+    if (quest) {
+      lines.push('はかもり「あの3人の はかに\nはなを そなえてきた」');
+      lines.push('「あの子らが しらべようとした\nことを、おまえが おわらせた。\nそう つたえておいたよ」');
+    }
+    // 日記を全部読んでいれば、竜の名誉が回復する結末になる
+    if (lore) {
+      lines.push('のこされた にっきは\nきょうかいに おさめられた。',
+        'この ちを まもっていた りゅうが\nなぜ やみに おちたのか。',
+        'その わを つけた「だれか」は\nまだ みつかっていない。');
+    }
+    lines.push('こうして ' + p.name + 'の\nはじめての ぼうけんは おわった。');
+    lines.push('だが これは\nはじまりの村の はなしにすぎない。');
+    lines.push('── クリア ──\nレベル ' + p.lv + '　／　たおした まもの ' + p.kills
+      + '\nあるいた ほすう ' + p.steps
+      + '\n' + (lore ? 'にっき ３／３' : 'にっき ' + [G.flags.read.d1, G.flags.read.d2, G.flags.read.d3].filter(Boolean).length + '／３')
+      + '　' + (quest ? 'いらい 　たっせい' : 'いらい 　みたっせい')
+      + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう');
+    lines.push('ボタンを おすと\nタイトルに もどります。');
+    G.msg.show(lines, function () { G.ending.done = true; });
   };
   G.endingUpdate = function (dt) {
     G.ending.t += dt;

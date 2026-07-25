@@ -195,14 +195,42 @@
         return;
       }
 
-      // 目の前のイベント（看板・宝箱）
+      // 目の前のイベント（看板・宝箱・読み物・拾得物）
       const ev = this.eventAt(fx, fy) || this.eventAt(p.x, p.y);
       if (ev) {
         if (ev.type === 'sign') { G.audio.se('confirm'); G.msg.show(ev.text); return; }
         if (ev.type === 'chest') { this.openChest(ev); return; }
+        if (ev.type === 'read') { this.readIt(ev); return; }
+        if (ev.type === 'pickup') { this.pickUp(ev); return; }
       }
       G.audio.se('cancel');
       G.msg.show('なにも みつからなかった。');
+    },
+
+    // 日記や碑文。一度読むと flags.read に残り、以後は短い文に変わる
+    readIt: function (ev) {
+      G.audio.se('confirm');
+      const first = !G.flags.read[ev.id];
+      G.flags.read[ev.id] = 1;
+      G.msg.show(first ? ev.text : (ev.again || ev.text));
+    },
+
+    // クエストの証拠品。受注前は「気になるが持てない」状態にする
+    pickUp: function (ev) {
+      const q = G.flags.q;
+      if (ev.needQuest && (q[ev.needQuest] || 0) < 1) {
+        G.audio.se('cancel');
+        G.msg.show(ev.locked || 'なにかが おちている。\nいまは かかわらないでおこう。');
+        return;
+      }
+      if (q[ev.setQuest] >= ev.setValue) {
+        G.audio.se('cancel');
+        G.msg.show(ev.taken || 'もう なにも ない。');
+        return;
+      }
+      q[ev.setQuest] = ev.setValue;
+      G.audio.se('open');
+      G.msg.show(ev.text);
     },
 
     openChest: function (ev) {
