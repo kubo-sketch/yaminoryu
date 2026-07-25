@@ -125,7 +125,7 @@ tests/              node で回る検証スクリプト（下記）
 node tests/verify_maps.js    # マップ整合性 + 到達可能性(BFS)
 node tests/smoke.js          # 全画面の update+draw を実行して実行時エラー検出
 node tests/balance.js        # 戦闘を数千回自動プレイして勝率を出す
-node tests/story.js          # クエストの順序・報酬の二重取り・エンド分岐
+node tests/story.js          # クエストの順序・報酬の二重取り・エンド分岐・仲間・状態異常
 ```
 
 `verify_maps.js` は**スタート地点から歩いてボスまで到達できるか**をBFSで確認します。
