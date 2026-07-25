@@ -46,7 +46,7 @@
       for (let i = 0; i < n; i++) {
         this.enemies.push({
           id: enemyId, def: d, name: d.name, hp: d.hp, maxhp: d.hp,
-          sleep: 0, alive: true, defDown: 0, raged: false,
+          sleep: 0, alive: true, defDown: 0, raged: false, poison: 0,
           blink: 0, lunge: 0, fade: 0, bob: Math.random() * 6.28,
         });
       }
@@ -56,7 +56,7 @@
       this.actor = 0;                                // いま入力しているメンバー
       this.orders = [];                              // 各メンバーの行動予約
       G.party = G.party || [G.player];
-      G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; m.para = 0; });
+      G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; m.para = 0; m.seal = 0; });
       this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
       this.intro = 1;                                // 1→0 で敵がせり上がる
       G.state = 'battle';
@@ -170,12 +170,34 @@
           return;
         }
       }
+      // 敵にかけた毒も1ターンの終わりに効く
+      if (!this.epoisonDone) {
+        const sick = this.living().filter(function (e) { return e.poison; });
+        if (sick.length) {
+          this.epoisonDone = 1;
+          const self1 = this;
+          let txt1 = '';
+          sick.forEach(function (e) {
+            const d = Math.max(3, Math.floor(e.maxhp * G.ENEMY_POISON.rate));
+            e.hp -= d;
+            self1.pop(self1.enemies.indexOf(e), String(d), '#8fd07f');
+            txt1 += e.name + 'は どくで ' + d + 'の ダメージ！';
+            if (e.hp <= 0) { e.alive = false; e.fade = 1; txt1 += ' たおれた！'; }
+            txt1 += '\n';
+          });
+          this.phase = 'msg';
+          G.msg.show(txt1.replace(/\n$/, ''),
+            function () { self1.epoisonDone = 0; self1.next(); }, { auto: 620 });
+          return;
+        }
+      }
+      this.epoisonDone = 0;
       this.poisonDone = 0;
       this.members().forEach(function (m) { m.defending = false; });
       this.orders = [];
       // まひが1ターン進む。全員まひなら入力を飛ばして敵のターンへ
       const ms = this.members();
-      ms.forEach(function (m) { if (m.para > 0) m.para--; });
+      ms.forEach(function (m) { if (m.para > 0) m.para--; if (m.seal > 0) m.seal--; });
       const ready = ms.filter(function (m) { return m.alive !== false && m.hp > 0 && !m.para; });
       if (!ready.length && this.aliveMembers().length) {
         this.orders = [];
@@ -341,6 +363,16 @@
           t += te.name + 'は ねむってしまった！';
         } else t += te.name + 'には きかなかった！';
 
+      } else if (sp.kind === 'poison') {
+        const te = this.enemies[tgt !== undefined ? tgt : this.target];
+        if (!te || !te.alive) { this.next(); return; }
+        if (te.poison) t += te.name + 'は すでに どくに おかされている。';
+        else if (te.def.boss ? Math.random() < 0.4 : Math.random() < 0.75) {
+          te.poison = 1;
+          this.pop(this.enemies.indexOf(te), 'どく', '#8fd07f');
+          t += te.name + 'を どくに おかした！';
+        } else t += te.name + 'には きかなかった！';
+
       } else if (sp.kind === 'debuff') {
         const te = this.enemies[tgt !== undefined ? tgt : this.target];
         if (!te || !te.alive) { this.next(); return; }
@@ -486,6 +518,13 @@
             G.fx.flash('#e03c2c', 240); G.fx.shake(7, 280);
             // 毒を持つ敵は、当てたときに一定確率で毒にする
             let ptxt = '';
+            if (cur.seal && !p.seal && Math.random() < cur.seal) {
+              const r2 = G.SEAL.turns;
+              p.seal = r2[0] + G.rnd(r2[1] - r2[0] + 1);
+              G.fx.flash('#c0a0ff', 240);
+              self.popAlly(p, 'ふうじ', '#c0a0ff');
+              ptxt += '\n' + p.name + 'は じゅもんを ふうじられた！';
+            }
             if (cur.paralyze && !p.para && Math.random() < cur.paralyze) {
               const r = G.PARALYZE.turns;
               p.para = r[0] + G.rnd(r[1] - r[0] + 1);
@@ -593,7 +632,14 @@
           G.audio.se('confirm');
           const c = this.cmd;
           if (c === 0) this.beginTarget('attack');
-          else if (c === 1) this.openSub('spell');
+          else if (c === 1) {
+            if (this.cur().seal) {
+              G.audio.se('cancel');
+              this.say(this.cur().name + 'は じゅもんを\nふうじられている！', () => { this.phase = 'command'; });
+              return;
+            }
+            this.openSub('spell');
+          }
           else if (c === 2) this.commit({ kind: 'defend' });
           else if (c === 3) this.openSub('item');
           else this.commit({ kind: 'flee' });
@@ -938,6 +984,7 @@
         if (on) G.cursor(18, y);
         if (dead) { G.text('たおれている', 200, y, { size: 15, align: 'right', color: '#a4705c' }); return; }
         if (m.para) G.text('まひ', 200, y - 2, { size: 14, align: 'right', color: '#d8d0ff' });
+        else if (m.seal) G.text('ふうじ', 200, y - 2, { size: 14, align: 'right', color: '#c0a0ff' });
         else if (m.poison) G.text('どく', 200, y - 2, { size: 14, align: 'right', color: '#8fd07f' });
         // HP/MP バー
         const bw = 176;

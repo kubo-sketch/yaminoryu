@@ -325,6 +325,22 @@ console.log('\n=== 状態異常 ===');
   const inTable = Object.keys(G.ENC).some((k) => G.ENC[k].table.some((e) => G.ENEMIES[e].paralyze));
   if (!inTable) fail('まひを持つ敵が出現テーブルに載っていない');
   else ok('まひを持つ敵が出現テーブルに載っている');
+  // ふうじ
+  const seal = Object.keys(G.ENEMIES).filter((k) => G.ENEMIES[k].seal);
+  if (!seal.length) fail('ふうじを与える敵がいない');
+  else ok('ふうじを持つ敵: ' + seal.map((k) => G.ENEMIES[k].name).join('・'));
+  if (!G.SEAL) fail('ふうじの継続ターンが未定義');
+  else ok(`ふうじ ${G.SEAL.turns[0]}〜${G.SEAL.turns[1]}ターン`);
+  // 敵に効く毒
+  const venom = Object.keys(G.SPELLS).filter((k) => G.SPELLS[k].kind === 'poison');
+  if (!venom.length) fail('敵に毒を与える手段が無い');
+  else ok('毒の呪文: ' + venom.map((k) => G.SPELLS[k].name).join('・'));
+  // 誰かが習得できるか
+  const learnable = G.LEVELS.some((d) => d.learn && G.SPELLS[d.learn].kind === 'poison')
+    || Object.keys(G.ALLIES).some((k) => Object.values(G.ALLIES[k].spellAt).some((id) => G.SPELLS[id].kind === 'poison'));
+  if (!learnable) fail('毒の呪文を誰も覚えられない');
+  else ok('毒の呪文を習得できる');
+
   // 全員まひでも進行が止まらないこと（battle.js 側の分岐を確認）
   const bsrc = fs.readFileSync(path.join(ROOT, 'battle.js'), 'utf8');
   if (bsrc.indexOf('if (!ready.length && this.aliveMembers().length)') < 0)

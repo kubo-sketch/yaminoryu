@@ -16,7 +16,7 @@
   const MAX_LV = 40;
   const SPELL_AT = {
     3: 'hoimi', 4: 'mera', 5: 'rukani', 6: 'rarihou', 7: 'hyado',
-    8: 'behoimi', 10: 'begirama', 11: 'raidein',
+    8: 'behoimi', 9: 'venom', 10: 'begirama', 11: 'raidein',
     14: 'behoma', 17: 'mahyado', 20: 'zaoral', 24: 'behomara',
     28: 'ionazun', 33: 'merazoma', 37: 'zaorik',
   };
@@ -58,7 +58,7 @@
       // 攻撃呪文に特化。打たれ弱いが、全体攻撃を誰より早く覚える
       mul: { hp: 0.62, mp: 1.75, atk: 0.55, def: 0.7 },
       spellAt: {
-        1: 'mera', 3: 'hyado', 6: 'begirama', 9: 'rukani', 12: 'raidein',
+        1: 'mera', 3: 'hyado', 6: 'begirama', 9: 'rukani', 10: 'venom', 12: 'raidein',
         15: 'mahyado', 19: 'hoimi', 23: 'ionazun', 29: 'merazoma',
       },
       weapon: 1, armor: 1,
@@ -158,6 +158,10 @@
       name: 'ラリホー', mp: 4, battle: true, field: false, kind: 'sleep',
       power: function () { return 0; },
     },
+    venom: {
+      name: 'ベノム', mp: 6, battle: true, field: false, kind: 'poison',
+      power: function () { return 0; },
+    },
     rukani: {
       name: 'ルカニ', mp: 3, battle: true, field: false, kind: 'debuff',
       power: function () { return 0; },
@@ -235,6 +239,7 @@
       name: 'やみのまどうし', spr: 'mage', hp: 24, atk: 15, def: 9, exp: 24, gold: 40,
       scale: 0.96, flee: true, max: 2, spell: { id: 'mera', rate: 0.45 },
       weak: 'thunder', resist: 'fire',
+      seal: 0.22,
     },
     serpent: {
       name: 'うみへび', spr: 'serpent', hp: 48, atk: 29, def: 14, exp: 32, gold: 45,
@@ -317,6 +322,7 @@
         text: 'ガレンは にの わを かかげた！\nくろい ひかりが あふれだす！',
         atk: 62, spell: { id: 'raidein', rate: 0.4 }, acts: 2,
       },
+      seal: 0.18,
     },
     boss: {
       name: 'やみのりゅう', spr: 'boss', hp: 300, atk: 26, def: 20, exp: 250, gold: 400,
@@ -407,6 +413,8 @@
   /* ---------------- 状態異常「どく」 ----------------
      戦闘中は毎ターン、フィールドでは数歩ごとにHPが減る。
      フィールドでは死なない（HP1で止まる）＝理不尽な即死を作らない。 */
+  G.SEAL = { turns: [3, 5] };                      // ふうじ：呪文が使えない
+  G.ENEMY_POISON = { rate: 0.1 };                  // 敵の毒：毎ターン最大HPの10%
   G.PARALYZE = { turns: [2, 4] };                  // まひの継続ターン（下限〜上限）
 
   G.POISON = {

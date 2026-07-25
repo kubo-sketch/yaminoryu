@@ -239,7 +239,7 @@
           'きを つけて いくのだぞ。',
         ], function () {
           (G.party || [p]).forEach(function (m) {
-            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.para = 0; m.alive = true;
+            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.para = 0; m.seal = 0; m.alive = true;
           });
           G.field.enter('town', 24, 20, 3);
           G.state = 'field';

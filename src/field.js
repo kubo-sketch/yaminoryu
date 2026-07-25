@@ -528,7 +528,7 @@
         G.audio.stopBgm();
         G.fx.fadeOut(function () {
           (G.party || [p]).forEach(function (m) {
-            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.para = 0; m.alive = true;
+            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.para = 0; m.seal = 0; m.alive = true;
           });
           setTimeout(function () {
             G.fx.fadeIn(function () {
