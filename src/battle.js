@@ -394,7 +394,12 @@
     enemyPhase: function (acts) {
       const self = this;
       this.enemies.forEach(function (e, idx) {
-        acts.push(function () {
+        // ボスは1ターンに複数回動く。ただし回数はこちらの人数までに抑える。
+        // 固定にすると、1人パーティでは2回殴られて即死し、3人では分散して
+        // 楽になる、という二極化が起きる。
+        const want = (e.raged && e.def.rage && e.def.rage.acts) || e.def.acts || 1;
+        const times = Math.max(1, Math.min(want, self.aliveMembers().length));
+        for (let rep = 0; rep < times; rep++) acts.push(function () {
           if (!e.alive || !self.aliveMembers().length) { self.next(); return; }
           // 狙う相手はパーティからランダム（HPが低い者をやや狙いやすくする）
           const alive = self.aliveMembers();
@@ -431,9 +436,25 @@
           };
 
           if (cur.breath && Math.random() < cur.breath) {
-            const dmg = hit(26 + G.rnd(14), 'fire');
             G.audio.se('fire');
             G.fx.flash('#ff7a2a', 320); G.fx.shake(9, 380);
+            if (cur.breathAll) {
+              // 全体ブレス。パーティ相手の切り札
+              let t2 = e.name + 'は ほのおの いきを はいた！\n';
+              self.aliveMembers().forEach(function (m2) {
+                let d2 = 26 + G.rnd(14);
+                if (m2.defending) d2 = Math.max(1, Math.floor(d2 * 0.5));
+                m2.hp = Math.max(0, m2.hp - d2);
+                self.popAlly(m2, '-' + d2, '#ff8878');
+                t2 += m2.name + 'は ' + d2 + 'の ダメージ！';
+                if (m2.hp <= 0) { m2.alive = false; t2 += ' たおれた！'; }
+                t2 += '\n';
+              });
+              self.efx.push({ kind: 'fire', x: 160, y: 300, t: 0, dur: 560 });
+              self.say(t2.replace(/\n$/, ''));
+              return;
+            }
+            const dmg = hit(26 + G.rnd(14), 'fire');
             self.say(e.name + 'は ほのおの いきを はいた！\n' + p.name + 'は ' + dmg + 'の ダメージ！'
               + (p.defending ? '\n（みを まもって はんげん）' : '')
               + (p.hp <= 0 ? '\n' + p.name + 'は たおれた！' : ''));
