@@ -218,6 +218,16 @@
       G.audio.se('confirm');
       const first = !G.flags.read[ev.id];
       G.flags.read[ev.id] = 1;
+      const R = G.flags.read;
+      // アルシオンで起源を知ると、竜の墓所への道が見えるようになる
+      if (!G.flags.valleyOpen && R.a1 && R.a2 && R.a3) {
+        G.flags.valleyOpen = 1;
+        G.msg.show([ev.text,
+          'りゅうを まつり、りゅうを つかい、\nほろんだ みやこ――',
+          'では、まつられていた りゅうたちは\nどこへ いったのか。',
+          '（きたの やまに「りゅうのはか」が\nあることを おもいだした）'], function () { G.saveGame(); });
+        return;
+      }
       G.msg.show(first ? ev.text : (ev.again || ev.text));
     },
 

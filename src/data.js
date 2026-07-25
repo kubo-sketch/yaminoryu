@@ -247,6 +247,27 @@
       scale: 1.0, flee: true, max: 2,
       weak: 'thunder', resist: 'fire',
     },
+    // りゅうのはか。Lv12以降でようやく戦える相手
+    wraith: {
+      name: 'りゅうの ぼうれい', spr: 'wraith', hp: 210, atk: 62, def: 40, exp: 260, gold: 180,
+      scale: 0.98, flee: true, max: 2,
+      weak: 'thunder', resist: 'fire',
+      spell: { id: 'begirama', rate: 0.3 },
+    },
+    // 谷の主。初代の竜。Lv20前後を想定した真のラスボス
+    elderdragon: {
+      name: 'はじまりの りゅう', spr: 'elder', hp: 2600, atk: 96, def: 62,
+      exp: 4200, gold: 3000,
+      scale: 1.06, flee: false, boss: true, truelast: 2,
+      acts: 2, breath: 0.3, breathAll: 1,
+      weak: null, resist: 'ice',
+      spell: { id: 'ionazun', rate: 0.28 },
+      rage: {
+        at: 0.45,
+        text: 'はじまりの りゅうは\nつばさを ひろげた！\nたにが ひかりに つつまれる！',
+        atk: 118, breath: 0.42, spell: { id: 'ionazun', rate: 0.38 }, acts: 3,
+      },
+    },
     // 中ボス。洞窟1Fの奥を守っていて、倒すと2Fへの鍵を落とす
     gatekeeper: {
       name: 'もんばんの がいこつ', spr: 'skeleton', hp: 160, atk: 29, def: 17, exp: 70, gold: 120,
@@ -302,6 +323,7 @@
     tower2: { rate: 0.10, table: ['serpent', 'statue', 'statue', 'mage'] },
     pass: { rate: 0.09, table: ['wolf', 'wolf', 'bat', 'skeleton', 'statue'] },
     ruin: { rate: 0.10, table: ['serpent', 'guardian', 'guardian', 'statue', 'mage'] },
+    valley: { rate: 0.10, table: ['wraith', 'wraith', 'guardian', 'serpent'] },
   };
 
   /* ---------------- 称号（結果表示用） ---------------- */

@@ -60,7 +60,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, chests: {}, q: {}, read: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, valleyOpen: 0, elderDead: 0, chests: {}, q: {}, read: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -156,6 +156,23 @@
         G.startEnding();
         G.fx.fadeIn(null, 0.003);
       }, 0.003);
+      return;
+    }
+    if (result === 'elder') {
+      G.state = 'field';
+      G.field.grace = 3;
+      G.audio.scene(p.map);
+      G.saveGame();
+      G.msg.show([
+        'はじまりの りゅうは\nしずかに くびを たれた。',
+        '「……よい。\nおまえの こたえを きいた」',
+        '「われらは まもって つきる。\nそれが りゅうの おわりかたよ」',
+        '「だが ヴェルドは\nまもれずに おわった。\nそれだけが むねんであった」',
+        'しろい からだが ひかりに ほどけ、\nあとに ひとつの たまごが のこった。',
+        'まだ あたたかい。',
+        '（りゅうの たまごを あずかった）',
+        'この ちの つぎの まもりては、\nまだ うまれていない。\n\nそれを そだてるのは――',
+      ]);
       return;
     }
     if (result === 'truelast') {
@@ -255,6 +272,14 @@
       lines.push('はかもり「あの3人の はかに\nはなを そなえてきた」');
       lines.push('「あの子らが しらべようとした\nことを、おまえが おわらせた。\nそう つたえておいたよ」');
     }
+    // 竜の墓所まで辿り着いていれば、土地の行く末まで語られる
+    if (G.flags.elderDead) {
+      lines.push('きたの たにから もちかえった たまごは、\nむらの きょうかいに あずけられた。');
+      lines.push('はかもりが いった。\n「わしが みておこう。\nどうせ ひまな みだ」');
+      lines.push('この ちを まもるものは\nまだ ちいさく、まだ ねむっている。',
+        'それが おきる ころ、\n' + p.name + 'は もう いないだろう。',
+        'それでも――\nつぎに わたす ものは のこった。');
+    }
     // 裏ボスを倒していれば、黒幕の顛末まで語られる
     if (G.flags.galenDead) {
       lines.push('とうだいの おくで たおれた\nろうじんの ことは、\nむらには つたえなかった。');
@@ -283,6 +308,7 @@
       + '　' + (quest ? 'いらい 　たっせい' : 'いらい 　みたっせい')
       + (G.flags.galenDead ? '\n「くろまくを うった」' : '')
       + ((R.a1 && R.a2 && R.a3) ? '　「わの きげんを しった」' : '')
+      + (G.flags.elderDead ? '\n「はじまりの りゅうに こたえた」' : '')
       + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう');
     lines.push('ボタンを おすと\nタイトルに もどります。');
     G.msg.show(lines, function () { G.ending.done = true; });

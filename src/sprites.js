@@ -1608,6 +1608,135 @@
     return c;
   }
 
+  /* ---- りゅうのはか の魔物 ---- */
+  function eWraith() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 竜の亡霊。実体がないので輪郭を持たせず、下ほど薄れて消える
+    const body = 'rgba(150,205,215,0.55)', core = 'rgba(200,240,245,0.75)';
+    // 尾のほうから薄くなる帯
+    for (let i = 0; i < 30; i++) {
+      const t = i / 29;
+      const x = 48 + Math.round(Math.sin(t * 5.2) * (26 - t * 6));
+      const y = 92 - Math.round(t * 44);
+      const w = Math.round(6 + t * 12);
+      const a = 0.10 + t * 0.42;
+      px(g, x - (w >> 1), y, 'rgba(150,205,215,' + a.toFixed(2) + ')', w, 3);
+    }
+    ellipse(g, 48, 44, 19, 17, body);               // 胴
+    ellipse(g, 43, 39, 12, 11, core);
+    // 翼（骨だけが残っている）
+    for (let i = 0; i < 4; i++) {
+      const t = (i + 1) / 5;
+      const ex = Math.round(8 + t * 12), ey = Math.round(6 + t * 40);
+      for (let k = 0; k <= 20; k++) {
+        const q = k / 20;
+        px(g, Math.round(30 + (ex - 30) * q), Math.round(38 + (ey - 38) * q), 'rgba(220,245,250,0.5)', 2, 2);
+        px(g, Math.round(66 + (96 - ex - 66) * q), Math.round(38 + (ey - 38) * q), 'rgba(220,245,250,0.5)', 2, 2);
+      }
+    }
+    tri3(g, 30, 38, 8, 6, 20, 46, 'rgba(150,205,215,0.20)');
+    tri3(g, 66, 38, 88, 6, 76, 46, 'rgba(150,205,215,0.20)');
+    // 首と頭（骸骨めいた造形）
+    for (let i = 0; i < 20; i++) {
+      const t = i / 19;
+      const x = 48 + Math.round(Math.sin(t * 1.4) * 6);
+      const w = 13 - Math.round(t * 5);
+      px(g, x - (w >> 1), 34 - i, body, w, 1);
+      px(g, x - (w >> 1), 34 - i, core, 3, 1);
+    }
+    disc(g, 52, 14, 11, body);
+    disc(g, 48, 11, 7, core);
+    ellipse(g, 56, 20, 12, 5, body);                // 口吻
+    px(g, 44, 10, 'rgba(120,240,255,0.95)', 7, 6);  // 光る眼窩
+    px(g, 55, 10, 'rgba(120,240,255,0.95)', 7, 6);
+    px(g, 46, 12, '#ffffff', 3, 3); px(g, 57, 12, '#ffffff', 3, 3);
+    tri(g, 40, -2, 4, 14, 'rgba(200,240,245,0.6)'); // 角
+    tri(g, 64, -2, 4, 14, 'rgba(200,240,245,0.6)');
+    for (let i = 0; i < 6; i++) px(g, 46 + i * 3, 22, 'rgba(240,255,255,0.8)', 2, 4);  // 牙
+    // 漂う燐光
+    for (let i = 0; i < 18; i++) {
+      const x = 12 + ((i * 29) % 72), y = 6 + ((i * 41) % 80);
+      disc(g, x, y, 1 + (i % 2), 'rgba(190,245,255,0.45)');
+    }
+    return c;                                        // outline を掛けない＝実体がない
+  }
+
+  function eElder() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // はじまりのりゅう。白い巨躯。やみのりゅうより一回り大きく、翼を高く掲げる
+    const W0 = '#6b6a78', W1 = '#8f8e9c', W2 = '#b6b5c2', W3 = '#d8d7e2', W4 = '#f2f1f8';
+    // 翼（上へ大きく開く）
+    tri3(g, 30, 44, 0, 0, 4, 40, W0);
+    tri3(g, 30, 44, 4, 40, 22, 56, W0);
+    tri3(g, 66, 44, 96, 0, 92, 40, W1);
+    tri3(g, 66, 44, 92, 40, 74, 56, W1);
+    for (let i = 0; i <= 3; i++) {
+      const t = i / 3;
+      const ex = Math.round(0 + t * 22), ey = Math.round(0 + t * 56);
+      for (let k = 0; k <= 26; k++) {
+        const q = k / 26;
+        px(g, Math.round(30 + (ex - 30) * q), Math.round(44 + (ey - 44) * q), W3);
+        px(g, Math.round(66 + (96 - ex - 66) * q), Math.round(44 + (ey - 44) * q), W3);
+      }
+    }
+    px(g, 2, 28, W2, 30, 8); px(g, 64, 28, W2, 30, 8);
+    ellipse(g, 48, 68, 21, 22, W1);                  // 胴
+    ellipse(g, 41, 61, 14, 15, W2);
+    ellipse(g, 38, 57, 7, 7, W3);
+    ellipse(g, 48, 82, 16, 11, W0);
+    for (let r = 0; r < 4; r++)
+      for (let i = 0; i < 5; i++) {
+        const x = 34 + i * 7 + (r % 2) * 3, y = 56 + r * 7;
+        if ((x - 48) * (x - 48) / (19 * 19) + (y - 68) * (y - 68) / (21 * 21) > 1) continue;
+        dome(g, x, y + 4, 3, 4, W0); dome(g, x, y + 3, 3, 3, W2);
+      }
+    for (let i = 0; i < 5; i++) {                    // 腹の甲板（金ではなく骨色）
+      px(g, 37 + i * 5, 64 + (i % 2), '#cfc9a8', 4, 18);
+      px(g, 37 + i * 5, 64 + (i % 2), '#efe9c8', 4, 3);
+    }
+    for (let i = 0; i < 36; i++) {                   // 長い首
+      const t = i / 35;
+      const x = 48 + Math.round(Math.sin(t * 1.0) * 4);
+      const w = 21 - Math.round(t * 9);
+      px(g, x - (w >> 1), 54 - i, W1, w, 1);
+      px(g, x + (w >> 1) - 5, 54 - i, W0, 5, 1);
+      px(g, x - (w >> 1), 54 - i, W2, 4, 1);
+    }
+    for (let i = 0; i < 11; i++) {
+      const t = i / 10, x = 48 + Math.round(Math.sin(t * 1.0) * 4);
+      tri(g, x + 8, 50 - i * 4, 3, 7, '#efe9c8');
+    }
+    disc(g, 48, 14, 14, W1);                         // 頭
+    disc(g, 43, 9, 9, W2);
+    disc(g, 41, 7, 4, W4);
+    ellipse(g, 50, 24, 15, 6, W1);
+    ellipse(g, 50, 26, 14, 3, W0);
+    tri(g, 33, -6, 6, 20, '#efe9c8'); tri(g, 63, -6, 6, 20, '#efe9c8');
+    tri(g, 27, 4, 5, 14, '#dfd9b8'); tri(g, 69, 4, 5, 14, '#dfd9b8');
+    px(g, 37, 10, '#2a2a3a', 11, 8);                 // 目（金でなく静かな青白）
+    px(g, 38, 11, '#6fc8e8', 9, 6);
+    px(g, 41, 12, '#ffffff', 4, 4);
+    px(g, 51, 10, '#2a2a3a', 11, 8);
+    px(g, 52, 11, '#6fc8e8', 9, 6);
+    px(g, 55, 12, '#ffffff', 4, 4);
+    px(g, 38, 30, P.out, 24, 4);
+    for (let i = 0; i < 7; i++) px(g, 39 + i * 3.4, 27, '#f6f4ee', 3, 5);
+    px(g, 25, 62, W1, 15, 26); px(g, 57, 62, W1, 15, 26);   // 脚
+    px(g, 25, 62, W0, 5, 26); px(g, 67, 62, W0, 5, 26);
+    for (let i = 0; i < 3; i++) {
+      px(g, 23 + i * 6, 86, '#efe9c8', 5, 8); px(g, 55 + i * 6, 86, '#efe9c8', 5, 8);
+    }
+    for (let i = 0; i < 26; i++) {                   // 尾
+      const w = Math.max(3, 15 - Math.round(i * 0.45));
+      const y = 78 - Math.round(Math.sin(i * 0.16) * 9);
+      px(g, 66 + i, y, W1, 2, w);
+      px(g, 66 + i, y, W2, 2, 3);
+    }
+    tri(g, 93, 58, 5, 13, '#efe9c8');
+    outline(c, P.out);
+    return c;
+  }
+
   /* =====================================================================
      初期化
      ===================================================================== */
@@ -1651,7 +1780,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
-      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(), wolf: eWolf(), guardian: eGuardian(),
+      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(), wolf: eWolf(), guardian: eGuardian(), wraith: eWraith(), elder: eElder(),
     };
   };
 })();

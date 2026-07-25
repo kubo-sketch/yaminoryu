@@ -219,6 +219,7 @@
     G.RANKS.forEach(function (r) { if (p.lv >= r.lv) name = r.name; });
     if (G.flags.bossDead) name = 'りゅうごろし';
     if (G.flags.galenDead) name = 'わを くだきし者';
+    if (G.flags.elderDead) name = 'たまごを あずかりし者';
     return name;
   };
 
