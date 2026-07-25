@@ -1042,7 +1042,8 @@
     [[6, 8, 2, 1, 3], [22, 8, 2, 1, 7], [6, 16, 2, 1, 11], [22, 16, 2, 1, 13]]
       .forEach(function (m2) { g.blob(m2[0], m2[1], m2[2], m2[3], '^', m2[4]); });
     g.rect(10, 1, 8, 3, 'o');                      // 最奥の祭壇
-    g.set(13, 2, 'z'); g.set(14, 2, 'z');
+    g.set(12, 2, 'z'); g.set(15, 2, 'z');
+    g.set(13, 1, 'D'); g.set(14, 1, 'D');          // 奥の間へ（初代を倒すと開く）
     g.set(9, 10, 'j'); g.set(18, 14, 'j');
     g.set(3, 19, '$'); g.set(24, 19, '$');
     g.set(13, 20, 'D'); g.set(14, 20, 'D');
@@ -1053,6 +1054,16 @@
       events: [
         { x: 13, y: 20, type: 'warp', to: 'field', tx: 20, ty: 6, dir: 0 },
         { x: 14, y: 20, type: 'warp', to: 'field', tx: 20, ty: 6, dir: 0 },
+        {
+          x: 13, y: 1, type: 'warp', to: 'deep', tx: 7, ty: 11, dir: 3,
+          requires: 'elderDead',
+          deny: 'いわの とびらは うごかない。',
+        },
+        {
+          x: 14, y: 1, type: 'warp', to: 'deep', tx: 7, ty: 11, dir: 3,
+          requires: 'elderDead',
+          deny: 'いわの とびらは うごかない。',
+        },
         { x: 3, y: 19, type: 'chest', id: 'v1', gold: 1200 },
         { x: 24, y: 19, type: 'chest', id: 'v2', item: 'yakusou', n: 9 },
         {
@@ -1088,6 +1099,45 @@
     };
   }
 
+  /* =====================================================================
+     ふかいの ま（りゅうのはか の奥）— 隠しボス
+     ---------------------------------------------------------------------
+     はじまりの りゅうを倒すと開く。倒したはずのヴェルドと、もう一度会う。
+     戦うためではなく、輪に縛られていた記憶を終わらせるために。
+     ===================================================================== */
+  function buildDeep() {
+    const g = new Grid(15, 13, '%');
+    g.rect(2, 2, 11, 9, '-');
+    g.set(7, 12, 'D');
+    g.set(7, 11, '-');
+    g.set(2, 2, 'i'); g.set(12, 2, 'i'); g.set(2, 10, 'i'); g.set(12, 10, 'i');
+    g.set(6, 9, 'z'); g.set(8, 9, 'z');
+    return {
+      id: 'deep', name: 'ふかいの ま', rows: g.rows(),
+      enc: null, indoor: true, weather: 'fog',
+      npcs: [],
+      events: [
+        { x: 7, y: 12, type: 'warp', to: 'valley', tx: 13, ty: 4, dir: 0 },
+        {
+          x: 7, y: 4, type: 'boss', id: 'phantom', enemy: 'phantom', flag: 'phantomDead',
+          intro: 'くらやみの なかに\nみおぼえの ある かげが たっていた。\n\n'
+               + 'ヴェルド。\n\n'
+               + '「……また あったな」\n'
+               + '「わの きおくが ここに のこっている。\n'
+               + 'これを おわらせて くれ」',
+        },
+        {
+          x: 7, y: 8, type: 'read', id: 'z1',
+          text: 'ゆかに ほられた ひとこと――\n\n'
+              + '「まもれなかった ことを\n'
+              + 'ゆるされたいのでは ない。\n'
+              + 'ただ おぼえていて ほしい」',
+          again: 'ゆかに ほられた ひとこと。',
+        },
+      ],
+    };
+  }
+
   G.buildMaps = function () {
     G.MAPS = {
       town: buildTown(),
@@ -1101,6 +1151,7 @@
       pass: buildPass(),
       ruin: buildRuin(),
       valley: buildValley(),
+      deep: buildDeep(),
     };
     // 幅の検証（構造上ズレないはずだが、編集ミスを早期に出す）
     Object.keys(G.MAPS).forEach(function (k) {

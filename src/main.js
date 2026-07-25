@@ -60,7 +60,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, valleyOpen: 0, elderDead: 0, chests: {}, q: {}, read: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, valleyOpen: 0, elderDead: 0, phantomDead: 0, chests: {}, q: {}, read: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -156,6 +156,21 @@
         G.startEnding();
         G.fx.fadeIn(null, 0.003);
       }, 0.003);
+      return;
+    }
+    if (result === 'phantom') {
+      G.state = 'field';
+      G.field.grace = 3;
+      G.audio.scene(p.map);
+      G.saveGame();
+      G.msg.show([
+        'くろい わが くだけ、\nかげは しずかに うすれていった。',
+        '「……ありがとう」',
+        '「まもれなかった ことを\nゆるされたいのでは ない」',
+        '「ただ おぼえていて ほしかった」',
+        'ヴェルドの きおくは\nもう どこにも しばられていない。',
+        '（ぼうけんを きろくした）',
+      ]);
       return;
     }
     if (result === 'elder') {
@@ -272,6 +287,12 @@
       lines.push('はかもり「あの3人の はかに\nはなを そなえてきた」');
       lines.push('「あの子らが しらべようとした\nことを、おまえが おわらせた。\nそう つたえておいたよ」');
     }
+    // 記憶まで解いていれば、ヴェルドの名前が最後に戻ってくる
+    if (G.flags.phantomDead) {
+      lines.push('たにの おくで であった かげのことは、\nだれにも はなさなかった。');
+      lines.push('ただ ' + p.name + 'だけが\nその なまえを おぼえている。',
+        'ヴェルド。\nこの ちを まもって つきた りゅう。');
+    }
     // 竜の墓所まで辿り着いていれば、土地の行く末まで語られる
     if (G.flags.elderDead) {
       lines.push('きたの たにから もちかえった たまごは、\nむらの きょうかいに あずけられた。');
@@ -309,6 +330,7 @@
       + (G.flags.galenDead ? '\n「くろまくを うった」' : '')
       + ((R.a1 && R.a2 && R.a3) ? '　「わの きげんを しった」' : '')
       + (G.flags.elderDead ? '\n「はじまりの りゅうに こたえた」' : '')
+      + (G.flags.phantomDead ? '　「きおくを ときはなった」' : '')
       + '\nプレイじかん ' + min + 'ふん' + sec + 'びょう');
     lines.push('ボタンを おすと\nタイトルに もどります。');
     G.msg.show(lines, function () { G.ending.done = true; });

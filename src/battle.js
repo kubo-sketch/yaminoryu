@@ -537,6 +537,7 @@
     },
     finishWin: function () {
       const first = this.enemies[0];
+      if (first && first.def.truelast === 3) { G.flags.phantomDead = 1; G.endBattle('phantom'); return; }
       if (first && first.def.truelast === 2) { G.flags.elderDead = 1; G.endBattle('elder'); return; }
       if (first && first.def.truelast) { G.flags.galenDead = 1; G.endBattle('truelast'); return; }
       if (first && first.def.midboss) { G.flags.gateOpen = 1; G.endBattle('midboss'); return; }

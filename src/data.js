@@ -281,6 +281,22 @@
         atk: 118, breath: 0.42, spell: { id: 'ionazun', rate: 0.38 }, acts: 3,
       },
     },
+    // 隠しボス。はじまりの りゅうを倒したあと、谷の奥に現れる
+    // 「輪に縛られていたときのヴェルド」の記憶。倒すと本当に解放される
+    phantom: {
+      name: 'ヴェルドの まぼろし', spr: 'boss', hp: 19000, atk: 215, def: 120,
+      exp: 20000, gold: 9000,
+      scale: 1.06, flee: false, boss: true, truelast: 3,
+      acts: 3, breath: 0.34, breathAll: 1,
+      weak: null, resist: null,
+      paralyze: 0.16,
+      spell: { id: 'ionazun', rate: 0.32 },
+      rage: {
+        at: 0.4,
+        text: 'まぼろしの くびに\nくろい わが うかびあがった！\n\n「……ころして くれ」',
+        atk: 268, breath: 0.46, spell: { id: 'ionazun', rate: 0.44 }, acts: 3,
+      },
+    },
     // 中ボス。洞窟1Fの奥を守っていて、倒すと2Fへの鍵を落とす
     gatekeeper: {
       name: 'もんばんの がいこつ', spr: 'skeleton', hp: 160, atk: 29, def: 17, exp: 70, gold: 120,

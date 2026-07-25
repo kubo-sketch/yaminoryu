@@ -220,6 +220,7 @@
     if (G.flags.bossDead) name = 'りゅうごろし';
     if (G.flags.galenDead) name = 'わを くだきし者';
     if (G.flags.elderDead) name = 'たまごを あずかりし者';
+    if (G.flags.phantomDead) name = 'なまえを おぼえし者';
     return name;
   };
 
