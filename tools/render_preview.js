@@ -332,6 +332,20 @@ function renderMap(file, mapId, px, py, opt) {
   actors.forEach((a) => {
     g.drawImage(a.img, 0, 0, TS, CH, Math.round(a.x), Math.round(a.y - lift), T, CH * o.scale);
   });
+  for (let j = -1; j <= o.vh; j++) for (let i = 0; i <= o.vw; i++) {
+    const mx = x0 + i, my = y0 + j;
+    if (mx < 0 || my < 0 || mx >= m.w || my >= m.h) continue;
+    const def = G.TILEDEF[m.rows[my][mx]];
+    if (!def || !def.over) continue;
+    let img = G.TILE[def.tile];
+    const vari = (mx * 7 + my * 13 + ((mx * my) & 7)) & 0xffff;
+    if (def.auto) {
+      const mask = autoMask(mx, my, def.auto);
+      img = (def.anim ? img[0] : img[vari % img.length])[mask];
+    } else if (Array.isArray(img)) img = def.anim ? img[0] : img[vari % img.length];
+    g.drawImage(img, 0, 0, TS, def.over,
+      Math.round(ox + i * T), Math.round(oy + j * T), T, def.over * o.scale);
+  }
 
   const bytes = writePNG(path.join(OUT, file), cv);
   console.log('  ' + file + '  ' + cv.width + 'x' + cv.height + '  ' + (bytes / 1024).toFixed(1) + 'KB');

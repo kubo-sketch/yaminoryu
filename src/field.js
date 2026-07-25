@@ -134,10 +134,10 @@
           this.warp(ev);
           return true;
         }
-        if (ev.type === 'boss' && !G.flags.bossDead) {
+        if (ev.type === 'boss' && !G.flags[ev.flag || 'bossDead']) {
           this.busy = true;
           const self = this;
-          G.msg.show(['ずしり――\nつめたい かぜが ふきぬけた。'], function () {
+          G.msg.show([ev.intro || 'ずしり――\nつめたい かぜが ふきぬけた。'], function () {
             self.busy = false;
             G.startBattle(ev.enemy, true);
           });
@@ -306,6 +306,21 @@
         c.drawImage(a.img, 0, 0, TS, CH, a.x | 0, (a.y - lift) | 0, T, CH * G.S);
       });
 
+      // 上レイヤー：木の葉や屋根の上部だけをキャラの後に描き直す。
+      // これでキャラが木の陰に入り、平面的な貼り絵に見えなくなる。
+      for (let j = -1; j <= G.VH; j++) {
+        for (let i = 0; i <= G.VW; i++) {
+          const mx = x0 + i, my = y0 + j;
+          if (mx < 0 || my < 0 || mx >= m.w || my >= m.h) continue;
+          const def = G.TILEDEF[m.rows[my][mx]];
+          if (!def || !def.over) continue;
+          const img = this.tileImage(mx, my, m.rows[my][mx], def, wf);
+          if (!img) continue;
+          c.drawImage(img, 0, 0, TS, def.over,
+            (ox + i * T) | 0, (oy + j * T) | 0, T, def.over * G.S);
+        }
+      }
+
       // 洞窟の暗さ（松明の届く範囲だけ見える）
       if (m.dark) {
         const cx = psx + T / 2, cy = psy + T / 2;
@@ -415,7 +430,7 @@
     G.closeMenu();
     G.field.busy = true;
     G.fx.fadeOut(function () {
-      G.field.enter('town', 11, 16, 3);
+      G.field.enter('town', 13, 20, 3);
       G.fx.fadeIn(function () { G.field.busy = false; }, 0.006);
     }, 0.006);
   };

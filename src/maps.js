@@ -27,11 +27,11 @@
     '*': { tile: 'flower', walk: 1, enc: 1 },
     '~': { tile: 'water', walk: 0, anim: 1, auto: 'water' },
     'B': { tile: 'bridge', walk: 1, enc: 1 },
-    'T': { tile: 'tree', walk: 0 },
+    'T': { tile: 'tree', walk: 0, over: 8 },
     '^': { tile: 'mtn', walk: 0, auto: 'mtn' },
     '#': { tile: 'brick', walk: 0, auto: 'brick' },
-    'R': { tile: 'roof', walk: 0 },
-    'r': { tile: 'roofTop', walk: 0 },
+    'R': { tile: 'roof', walk: 0, over: 16 },
+    'r': { tile: 'roofTop', walk: 0, over: 16 },
     'D': { tile: 'door', walk: 1, group: 'brick' },
     '=': { tile: 'floor', walk: 1, auto: 'floor' },
     'C': { tile: 'counter', walk: 0, group: 'floor' },
@@ -112,69 +112,83 @@
   };
 
   /* =====================================================================
-     はじまりの村（24 x 18）
+     はじまりの村（28 x 22）
      ---------------------------------------------------------------------
-        どうぐや        やどや
-        ┌────┐  │  ┌───┐
-        │    │  │  │   │
-        └─D──┘  │  └─D─┘
-      ────────  大通り  ────────  ← 横の道(y=8)
-        ┌─D──┐  │  ┌─D─┐
-        │    │  │  │ 王 │      村長の家
-        └────┘  │  └───┘
-                  ↓ 南の出口
+     3x3 の部屋の中央に店主を置くと、店主を回り込めず部屋が分断される。
+     （店主の背後の区画に一生入れない＝「通り抜けできない場所」になる）
+     部屋は内寸 6x5 まで広げ、店主は奥の壁際、カウンターはその左右、
+     小物は隅にだけ置く、という規則で組む。
+
+        どうぐや            やどや
+        ┌──────┐      ┌──────┐
+        │ C店C     │      │ C店C     │
+        └───D──┘      └───D──┘
+        ────── 広場（井戸） ──────
+        ┌───D──┐      ┌───D──┐
+        │ C鍛C     │      │  玉座     │  村長の家
+        └──────┘      └──────┘
+                    ↓ 南の出口
      ===================================================================== */
   function buildTown() {
-    const g = new Grid(24, 18, '.');
-    g.frame(0, 0, 24, 18, 'T');                    // 外周は森で囲う
-    g.rect(10, 1, 4, 16, ',');                     // 縦の大通り（広すぎると単調になる）
-    g.hline(1, 22, 8, ',');                        // 横の道
-    g.scatter([1, 1, 2, 1, 1, 2, 21, 1, 22, 1, 22, 2, 1, 15, 2, 16, 21, 15, 22, 16, 2, 6, 21, 6], '*');
+    const g = new Grid(28, 22, '.');
+    g.frame(0, 0, 28, 22, 'T');                    // 外周は森で囲う
+    g.rect(13, 1, 2, 20, ',');                     // 縦の大通り
+    g.rect(1, 10, 26, 2, ',');                     // 横の道
+    g.rect(11, 9, 6, 4, ',');                      // 中央の広場
 
-    // どうぐや（左上）
-    g.rect(3, 2, 6, 5, '#'); g.rect(4, 3, 4, 3, '='); g.set(6, 6, 'D');
-    g.set(4, 4, 'C'); g.set(5, 4, 'C');
-    // やどや（右上）
-    g.rect(15, 2, 5, 5, '#'); g.rect(16, 3, 3, 3, '='); g.set(17, 6, 'D');
-    g.set(16, 4, 'C');
-    // ぶきや（左下）
-    g.rect(3, 10, 6, 5, '#'); g.rect(4, 11, 4, 3, '='); g.set(6, 10, 'D');
-    g.set(4, 12, 'C'); g.set(5, 12, 'C');
-    // 村長の家（右下）
-    g.rect(15, 10, 5, 5, '#'); g.rect(16, 11, 3, 3, '='); g.set(17, 10, 'D');
-    g.set(17, 12, 'H');
+    // 建物を置くヘルパ。内寸 6x5、扉は下辺 or 上辺の指定位置
+    function house(x, y, doorDx, doorTop) {
+      g.rect(x, y, 8, 7, '#');
+      g.rect(x + 1, y + 1, 6, 5, '=');
+      g.set(x + doorDx, doorTop ? y : y + 6, 'D');
+    }
+    house(3, 2, 4, false);      // どうぐや  内寸 x=4..9,  y=3..7  扉(7,8)
+    house(17, 2, 4, false);     // やどや    内寸 x=18..23,y=3..7  扉(21,8)
+    house(3, 13, 4, true);      // ぶきや    内寸 x=4..9,  y=14..18 扉(7,13)
+    house(17, 13, 4, true);     // 村長の家  内寸 x=18..23,y=14..18 扉(21,13)
 
-    g.set(11, 17, ','); g.set(12, 17, ',');        // 南の出口
-    g.set(8, 9, 'S');                              // 看板
+    // 店主は「扉から遠い側の壁際」に置き、カウンターはその左右。
+    // 扉と同じ辺に置くと扉の正面がカウンターで塞がって部屋に入れなくなる。
+    g.set(5, 3, 'C'); g.set(7, 3, 'C');            // どうぐや（扉は下辺→店主は上端）
+    g.set(19, 3, 'C'); g.set(21, 3, 'C');          // やどや  （扉は下辺→店主は上端）
+    g.set(5, 18, 'C'); g.set(7, 18, 'C');          // ぶきや  （扉は上辺→店主は下端）
+    g.set(21, 15, 'H');                            // 村長の玉座
 
-    // 小物で密度を上げる（家具・樽・松明・柵・井戸）
-    g.set(7, 3, 'b'); g.set(4, 5, 'p');            // どうぐや
-    g.set(18, 3, 'b'); g.set(16, 5, 'c');          // やどや（絨毯）
-    g.set(7, 11, 'b'); g.set(7, 13, 'p');          // ぶきや
-    g.set(16, 13, 'c'); g.set(18, 13, 't');        // 村長の家
-    g.set(16, 11, 't');
-    g.set(20, 9, 'w');                             // 井戸
-    g.set(2, 12, 'f'); g.set(2, 13, 'f');          // 柵
-    g.set(21, 12, 'f'); g.set(21, 13, 'f');
+    // 小物は必ず「隅」に置く。通路の途中に置くと部屋が割れる
+    g.set(4, 3, 'b'); g.set(9, 7, 'p');            // どうぐや
+    g.set(18, 3, 'b'); g.set(19, 6, 'c'); g.set(20, 6, 'c');   // やどや
+    g.set(4, 14, 'b'); g.set(9, 14, 'p');          // ぶきや（隅）
+    g.set(18, 14, 't'); g.set(23, 14, 't');        // 村長の家（隅の松明）
+    g.set(20, 17, 'c'); g.set(21, 17, 'c');
+
+    g.set(13, 21, ','); g.set(14, 21, ',');        // 南の出口
+    g.set(11, 8, 'S');                             // 看板
+    g.set(15, 10, 'w');                            // 広場の井戸
+
+    // 屋外の装飾
+    g.scatter([1, 1, 2, 1, 1, 2, 25, 1, 26, 1, 26, 2,
+               1, 19, 2, 20, 25, 19, 26, 20, 2, 8, 25, 8, 2, 12, 25, 12], '*');
+    g.set(11, 19, 'f'); g.set(12, 19, 'f');
+    g.set(15, 19, 'f'); g.set(16, 19, 'f');
 
     return {
       id: 'town', name: 'はじまりの村', rows: g.rows(),
       enc: null, indoor: false,
       npcs: [
-        { x: 6, y: 4, spr: 'shop', dir: 0, act: { type: 'shop', shop: 'tool' } },
-        { x: 17, y: 4, spr: 'inn', dir: 0, act: { type: 'inn' } },
-        { x: 6, y: 12, spr: 'smith', dir: 0, act: { type: 'shop', shop: 'weapon' } },
-        { x: 17, y: 12, spr: 'elder', dir: 0, act: { type: 'elder' } },
+        { x: 6, y: 3, spr: 'shop', dir: 0, act: { type: 'shop', shop: 'tool' } },
+        { x: 20, y: 3, spr: 'inn', dir: 0, act: { type: 'inn' } },
+        { x: 6, y: 18, spr: 'smith', dir: 3, act: { type: 'shop', shop: 'weapon' } },
+        { x: 21, y: 15, spr: 'elder', dir: 0, act: { type: 'elder' } },
         {
-          x: 11, y: 5, spr: 'villager', dir: 0, wander: 1,
+          x: 12, y: 6, spr: 'villager', dir: 0,
           talk: ['この村は ずっと へいわだった。', 'きたの ほらあなから\nまものが あふれだすまでは……'],
         },
         {
-          x: 20, y: 12, spr: 'girl', dir: 0,
+          x: 17, y: 10, spr: 'girl', dir: 0,
           talk: ['おにいちゃん たたかえるの？', 'むらの そとは まものが いるから\nきをつけてね。'],
         },
         {
-          x: 12, y: 15, spr: 'soldier', dir: 0,
+          x: 14, y: 18, spr: 'soldier', dir: 0,
           talk: function () {
             return G.flags.toldByElder
               ? ['ほらあなの ふういんは とけたか。', 'ぶきと やくそうを ととのえてから\nいくのだぞ。']
@@ -182,18 +196,24 @@
           },
         },
         {
-          x: 4, y: 9, spr: 'sage', dir: 0,
-          talk: ['まものと たたかえば ちからが つく。', 'にげるのも せんじゅつだ。\nHPが へったら やどで やすむのだ。'],
+          x: 10, y: 11, spr: 'sage', dir: 0,
+          talk: ['まものと たたかえば ちからが つく。',
+                 'てきが つよいと おもったら\n「ぼうぎょ」だ。うけるダメージが\nはんぶんに なるぞ。'],
         },
         {
-          x: 20, y: 4, spr: 'villager', dir: 0,
+          x: 22, y: 6, spr: 'villager', dir: 0,
           talk: ['やどやは HPも MPも\nぜんぶ なおしてくれる。', '6ゴールドは やすいもんだ。'],
+        },
+        {
+          x: 6, y: 11, spr: 'priest', dir: 0,
+          talk: ['まものには それぞれ\nにがてな こうげきが ある。',
+                 'ほのおに よわい まもの\nこおりに よわい まもの……\nよく みきわめるのだ。'],
         },
       ],
       events: [
-        { x: 11, y: 17, type: 'warp', to: 'field', tx: 20, ty: 27, dir: 0 },
-        { x: 12, y: 17, type: 'warp', to: 'field', tx: 20, ty: 27, dir: 0 },
-        { x: 8, y: 9, type: 'sign', text: '「はじまりの村」\n　きた ほらあな\n　みなみ ぼうけんの はじまり' },
+        { x: 13, y: 21, type: 'warp', to: 'field', tx: 20, ty: 27, dir: 0 },
+        { x: 14, y: 21, type: 'warp', to: 'field', tx: 20, ty: 27, dir: 0 },
+        { x: 11, y: 8, type: 'sign', text: '「はじまりの村」\n　きた ほらあな\n　みなみ ぼうけんの はじまり' },
       ],
     };
   }
@@ -218,6 +238,19 @@
       for (let k = 0; k < 2; k++) { g.set(x, y + k, '~'); river[x + ',' + (y + k)] = 1; }
       if ((x * 5) % 9 < 2) { g.set(x, y + 2, '~'); river[x + ',' + (y + 2)] = 1; }
     }
+    // 川のあいだに草が1マスだけ残ると、水に囲まれた到達不能マスになる。
+    // 3方向以上が水なら埋める（2回まわして連鎖的な取り残しも潰す）
+    for (let pass = 0; pass < 2; pass++)
+      for (let x = 2; x < 38; x++)
+        for (let y = 11; y < 21; y++) {
+          if (g.d[y][x] === '~') continue;
+          let n = 0;
+          if (g.d[y - 1][x] === '~') n++;
+          if (g.d[y + 1][x] === '~') n++;
+          if (g.d[y][x - 1] === '~') n++;
+          if (g.d[y][x + 1] === '~') n++;
+          if (n >= 3) { g.set(x, y, '~'); river[x + ',' + y] = 1; }
+        }
 
     // 森（楕円のかたまり。矩形で置くと四角い森になる）
     [[6, 5, 4, 2, 3], [32, 5, 4, 3, 11], [4, 10, 3, 3, 23], [35, 11, 3, 3, 31],
@@ -263,7 +296,7 @@
       indoor: false,
       npcs: [],
       events: [
-        { x: 20, y: 27, type: 'warp', to: 'town', tx: 11, ty: 16, dir: 3 },
+        { x: 20, y: 27, type: 'warp', to: 'town', tx: 13, ty: 20, dir: 3 },
         {
           x: 20, y: 2, type: 'warp', to: 'cave1', tx: 12, ty: 2, dir: 0,
           requires: 'toldByElder',
@@ -293,13 +326,14 @@
     g.set(12, 1, '<');                             // 外へ
     g.set(7, 17, '>');                             // 2Fへ
     g.set(11, 12, '$');
+    g.set(21, 11, '$');                            // 東の行き止まりの宝
 
     // 床の暗い差し色（見た目のメリハリ）
     for (let i = 0; i < 60; i++) {
       const x = 1 + ((i * 5 + 2) % 24), y = 1 + ((i * 9 + 4) % 18);
       if (g.d[y][x] === '-') g.set(x, y, '3');
     }
-    g.set(12, 1, '<'); g.set(7, 17, '>'); g.set(11, 12, '$');
+    g.set(12, 1, '<'); g.set(7, 17, '>'); g.set(11, 12, '$'); g.set(21, 11, '$');
 
     return {
       id: 'cave1', name: 'やみのほらあな １かい', rows: g.rows(),
@@ -307,8 +341,18 @@
       npcs: [],
       events: [
         { x: 12, y: 1, type: 'warp', to: 'field', tx: 20, ty: 3, dir: 0 },
-        { x: 7, y: 17, type: 'warp', to: 'cave2', tx: 3, ty: 13, dir: 0 },
+        // 階段は門番を倒すまで進めない（中ボスが関門になる）
+        {
+          x: 7, y: 17, type: 'warp', to: 'cave2', tx: 3, ty: 13, dir: 0,
+          requires: 'gateOpen',
+          deny: 'かいだんは くろい もやに\nふさがれている。',
+        },
+        {
+          x: 7, y: 16, type: 'boss', id: 'gate', enemy: 'gatekeeper', flag: 'gateOpen',
+          intro: 'かいだんの まえに\nおおきな がいこつが たちふさがった！',
+        },
         { x: 11, y: 12, type: 'chest', id: 'c1', weapon: 3 },
+        { x: 21, y: 11, type: 'chest', id: 'c3', item: 'seisui', n: 2 },
       ],
     };
   }
@@ -327,13 +371,14 @@
     g.corridor(12, 10, 16, 10, '-', 2);            // 東の隠し通路
     g.corridor(12, 8, 12, 11, '-', 2);
     g.set(16, 11, '$');
+    g.set(13, 2, '$');                             // 広間の奥（ボスの背後）
     g.set(3, 13, '<');                             // 1Fへ
 
     for (let i = 0; i < 40; i++) {
       const x = 1 + ((i * 7 + 1) % 18), y = 1 + ((i * 5 + 2) % 14);
       if (g.d[y][x] === '-') g.set(x, y, '3');
     }
-    g.set(3, 13, '<'); g.set(16, 11, '$');
+    g.set(3, 13, '<'); g.set(16, 11, '$'); g.set(13, 2, '$');
 
     return {
       id: 'cave2', name: 'やみのほらあな さいしんぶ', rows: g.rows(),
@@ -342,9 +387,10 @@
       events: [
         { x: 3, y: 13, type: 'warp', to: 'cave1', tx: 7, ty: 16, dir: 0 },
         { x: 16, y: 11, type: 'chest', id: 'c2', armor: 3 },
+        { x: 13, y: 2, type: 'chest', id: 'c4', gold: 250 },
         // 広間の入口を踏むとボス戦
-        { x: 9, y: 5, type: 'boss', id: 'boss', enemy: 'boss' },
-        { x: 10, y: 5, type: 'boss', id: 'boss', enemy: 'boss' },
+        { x: 9, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead' },
+        { x: 10, y: 5, type: 'boss', id: 'boss', enemy: 'boss', flag: 'bossDead' },
       ],
     };
   }

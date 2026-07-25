@@ -54,7 +54,7 @@
      ===================================================================== */
   G.newGame = function () {
     const L = G.LEVELS[0];
-    G.flags = { toldByElder: 0, bossDead: 0, chests: {} };
+    G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, chests: {} };
     G.player = {
       name: 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
@@ -62,11 +62,11 @@
       exp: 0, gold: 24,
       weapon: 1, armor: 1,
       items: { yakusou: 3 }, spells: [],
-      map: 'town', x: 11, y: 14, dir: 3,
+      map: 'town', x: 13, y: 18, dir: 3,
       rx: 0, ry: 0, moving: false, moveT: 0, frame: 0,
       steps: 0, kills: 0, holy: 0, poison: 0, playMs: 0,
     };
-    G.field.enter('town', 11, 14, 3);
+    G.field.enter('town', 13, 18, 3);
     G.state = 'field';
     G.msg.show([
       'ここは「はじまりの村」。',
@@ -102,6 +102,14 @@
       }, 0.003);
       return;
     }
+    if (result === 'midboss') {
+      G.state = 'field';
+      G.field.grace = 3;
+      G.audio.scene(p.map);
+      G.saveGame();
+      G.msg.show(['もんばんは くずれおちた。', 'おくへ つづく かいだんの\nふういんが とけた！\n（ぼうけんを きろくした）']);
+      return;
+    }
     // 通常勝利／逃走 → フィールドへ復帰
     G.state = 'field';
     G.field.grace = 3;
@@ -128,7 +136,7 @@
           'きを つけて いくのだぞ。',
         ], function () {
           p.hp = p.maxhp; p.mp = p.maxmp; p.poison = 0;
-          G.field.enter('town', 17, 13, 3);
+          G.field.enter('town', 21, 16, 3);
           G.state = 'field';
           G.gameover.shown = 0;
           G.gameover.t = 0;

@@ -63,14 +63,14 @@ for (const id of Object.keys(G.MAPS)) {
 
 /* ---- 到達可能性：町のスタートから全ワープを辿って BFS ---- */
 console.log('\n=== 到達可能性（スタート地点から歩いて行けるか）===');
-const start = { map: 'town', x: 11, y: 14 };
+const start = { map: 'town', x: 13, y: 18 };
 const seen = new Set();
 const q = [start];
 const reachedWarps = new Set();
 const reachedEvents = new Set();
 
 const key = (m, x, y) => `${m}:${x},${y}`;
-if (!G.TILEDEF[G.MAPS.town.rows[14][11]].walk) err('スタート地点が通行不可！');
+if (!G.TILEDEF[G.MAPS.town.rows[18][13]].walk) err('スタート地点が通行不可！');
 
 while (q.length) {
   const cur = q.shift();
@@ -138,3 +138,78 @@ if (process.argv[2]) {
   console.log('\n' + m.rows.map((r, i) => String(i).padStart(2, ' ') + ' ' + r).join('\n'));
   console.log('   ' + [...Array(m.w).keys()].map((i) => i % 10).join(''));
 }
+
+/* =====================================================================
+   追加検証：狭すぎる通路・孤立領域・NPCによる封鎖
+   ---------------------------------------------------------------------
+   当たり判定は足元1マスなので、キャラを縦長にしても通行性は変わらない。
+   ただしマップを編集すると「1マス幅の隘路」や「NPCが唯一の通路を塞ぐ」
+   事故が起きる。到達可能性のBFSだけでは前者は検出できない。
+   ===================================================================== */
+console.log('\n=== 通路の詰まり ===');
+let warn = 0;
+for (const id of Object.keys(G.MAPS)) {
+  const m = G.MAPS[id];
+  const walk = (x, y) => {
+    const ch = m.rows[y] && m.rows[y][x];
+    const d = ch && G.TILEDEF[ch];
+    return !!(d && d.walk);
+  };
+  const npcAt = (x, y) => (m.npcs || []).some((n) => n.x === x && n.y === y);
+
+  // 1) NPC が唯一の通路を塞いでいないか
+  (m.npcs || []).forEach((n) => {
+    const nbr = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+      .filter(([dx, dy]) => walk(n.x + dx, n.y + dy) && !npcAt(n.x + dx, n.y + dy))
+      .map(([dx, dy]) => [n.x + dx, n.y + dy]);
+    if (nbr.length < 2) return;
+    const seen = new Set([nbr[0][0] + ',' + nbr[0][1]]);
+    const q = [nbr[0]];
+    while (q.length) {
+      const [cx, cy] = q.shift();
+      for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+        const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny;
+        if (seen.has(k) || !walk(nx, ny)) continue;
+        if (nx === n.x && ny === n.y) continue;
+        if (npcAt(nx, ny)) continue;
+        seen.add(k); q.push([nx, ny]);
+      }
+    }
+    if (nbr.some(([x, y]) => !seen.has(x + ',' + y))) {
+      console.log(`  ✗ ${id}: NPC(${n.spr}) が (${n.x},${n.y}) で通路を塞いで分断している`);
+      warn++;
+    }
+  });
+
+  // 2) 1マス幅の隘路
+  let narrow = 0; const spots = [];
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+    if (!walk(x, y)) continue;
+    const lr = !walk(x - 1, y) && !walk(x + 1, y);
+    const ud = !walk(x, y - 1) && !walk(x, y + 1);
+    if (lr || ud) { narrow++; if (spots.length < 6) spots.push(`(${x},${y})`); }
+  }
+  if (narrow) console.log(`  ・${id}: 1マス幅の通路 ${narrow}か所  例 ${spots.join(' ')}`);
+
+  // 3) 孤立した歩行可能領域
+  const all = [];
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (walk(x, y)) all.push([x, y]);
+  if (all.length) {
+    const seen = new Set([all[0][0] + ',' + all[0][1]]);
+    const q = [all[0]];
+    while (q.length) {
+      const [cx, cy] = q.shift();
+      for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+        const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny;
+        if (seen.has(k) || !walk(nx, ny)) continue;
+        seen.add(k); q.push([nx, ny]);
+      }
+    }
+    const orphan = all.filter(([x, y]) => !seen.has(x + ',' + y));
+    if (orphan.length) {
+      console.log(`  ✗ ${id}: 孤立マス ${orphan.length}個  例 ${orphan.slice(0, 5).map((o) => '(' + o + ')').join(' ')}`);
+      warn++;
+    }
+  }
+}
+console.log(warn ? `\n【要確認】${warn}件` : '\n【OK】通路の詰まりなし');

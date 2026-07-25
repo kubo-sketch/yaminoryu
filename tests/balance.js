@@ -27,60 +27,104 @@ function mkPlayer(lv, weapon, armor) {
 const atkOf = (p) => p.baseAtk + WEAPONS[p.weapon].atk;
 const defOf = (p) => p.baseDef + ARMORS[p.armor].def;
 
-/* ---------------- 1戦闘のシミュレーション ---------------- */
-// 戻り: {win, fled, turns, hpLeft, heals}
-function simBattle(p, enemyId) {
+/* ---------------- 1戦闘のシミュレーション ----------------
+   battle.js と同じ規則で回す：複数敵・属性倍率・ぼうぎょ・ボスの形態変化。
+   プレイヤーAIは「弱点を突く／複数なら全体攻撃／危なければ回復か防御」。 */
+function makeGroup(enemyId, forceOne) {
   const d = ENEMIES[enemyId];
-  let ehp = d.hp, sleep = 0, turns = 0, heals = 0;
+  const n = forceOne ? 1 : 1 + Math.floor(Math.random() * (d.max || 1));
+  const g = [];
+  for (let i = 0; i < n; i++)
+    g.push({ def: d, name: d.name, hp: d.hp, maxhp: d.hp, sleep: 0, alive: true, defDown: 0, raged: false });
+  return g;
+}
+const elemMul = (def, elem) => (!elem ? 1 : def.weak === elem ? 1.6 : def.resist === elem ? 0.5 : 1);
 
-  while (turns < 60) {
+function simBattle(p, group) {
+  let turns = 0, heals = 0, defends = 0;
+  const living = () => group.filter((e) => e.alive);
+
+  while (turns < 80) {
     turns++;
+    const alive = living();
+    if (!alive.length) return { win: true, fled: false, turns, hpLeft: p.hp, heals, defends };
 
-    /* --- プレイヤーの行動（人間らしい判断） --- */
+    /* --- プレイヤー --- */
     const lowHp = p.hp < p.maxhp * 0.38;
-    const canHoimi = p.spells.includes('behoimi') && p.mp >= SPELLS.behoimi.mp
-      ? 'behoimi' : (p.spells.includes('hoimi') && p.mp >= SPELLS.hoimi.mp ? 'hoimi' : null);
-    let acted = false;
+    const healSpell = p.spells.includes('behoimi') && p.mp >= SPELLS.behoimi.mp ? 'behoimi'
+      : (p.spells.includes('hoimi') && p.mp >= SPELLS.hoimi.mp ? 'hoimi' : null);
+    let defending = false, acted = false;
 
-    if (lowHp && canHoimi) {
-      p.mp -= SPELLS[canHoimi].mp;
-      p.hp = Math.min(p.maxhp, p.hp + SPELLS[canHoimi].power());
+    if (lowHp && healSpell) {
+      p.mp -= SPELLS[healSpell].mp;
+      p.hp = Math.min(p.maxhp, p.hp + SPELLS[healSpell].power());
       heals++; acted = true;
     } else if (lowHp && p.items.yakusou > 0) {
       p.items.yakusou--;
       p.hp = Math.min(p.maxhp, p.hp + 22 + Math.floor(Math.random() * 9));
       heals++; acted = true;
-    } else if (p.hp < p.maxhp * 0.22 && d.flee !== false) {
-      if (Math.random() < (d.agi ? 0.45 : 0.68)) return { win: false, fled: true, turns, hpLeft: p.hp, heals };
-      acted = true;                                  // 逃げ失敗＝1ターン損
+    } else if (p.hp < p.maxhp * 0.25) {
+      // 回復手段が尽きたら、逃げるか身を守る
+      if (group[0].def.flee !== false && Math.random() < 0.5) {
+        if (Math.random() < (group.some((e) => e.def.agi) ? 0.45 : 0.68))
+          return { win: false, fled: true, turns, hpLeft: p.hp, heals, defends };
+      } else { defending = true; defends++; p.mp = Math.min(p.maxmp, p.mp + 1); acted = true; }
     }
 
     if (!acted) {
-      // 攻撃呪文が通るならそちらを優先（ベギラマは通常攻撃より強い場面がある）
-      const beg = p.spells.includes('begirama') && p.mp >= SPELLS.begirama.mp + 7;
-      const phys = damage(atkOf(p), d.def);
-      if (beg && 36 > phys) {
-        p.mp -= SPELLS.begirama.mp;
-        ehp -= Math.max(1, Math.floor(SPELLS.begirama.power() * 0.95));
+      // 攻撃：全体攻撃 → 弱点呪文 → 通常攻撃 の順で価値を見る
+      const atk = atkOf(p);
+      const cands = [];
+      p.spells.forEach((id) => {
+        const sp = SPELLS[id];
+        if (sp.kind !== 'attack' || p.mp < sp.mp) return;
+        const base = 30;   // power() の期待値のおおよそ
+        alive.forEach(() => {});
+        const per = (id === 'mera' ? 13 : id === 'hyado' ? 19 : id === 'begirama' ? 32 : 46);
+        const tot = sp.all
+          ? alive.reduce((s2, e) => s2 + per * elemMul(e.def, sp.elem), 0)
+          : per * elemMul(alive[0].def, sp.elem);
+        // MPは有限なので、通常攻撃より十分強いときだけ使う
+        cands.push({ id, sp, score: tot, mp: sp.mp });
+      });
+      const phys = Math.max(1, atk - Math.max(0, alive[0].def.def - alive[0].defDown) / 2);
+      const best = cands.sort((a, b) => b.score - a.score)[0];
+      const mpRoom = p.mp > p.maxmp * 0.35;
+      if (best && mpRoom && best.score > phys * 1.25) {
+        p.mp -= best.sp.mp;
+        const targets = best.sp.all ? alive : [alive[0]];
+        targets.forEach((e) => {
+          const dmg = Math.max(1, Math.round(best.sp.power() * elemMul(e.def, best.sp.elem)));
+          e.hp -= dmg;
+          if (e.hp <= 0) e.alive = false;
+        });
       } else {
-        ehp -= isCrit() ? Math.floor(atkOf(p) * (0.95 + Math.random() * 0.2)) : phys;
+        const e = alive[0];
+        const dmg = isCrit() ? Math.floor(atk * (0.95 + Math.random() * 0.2))
+          : damage(atk, Math.max(0, e.def.def - e.defDown));
+        e.hp -= dmg;
+        if (e.hp <= 0) e.alive = false;
       }
-      if (sleep > 0 && Math.random() < 0.4) sleep = 0;
     }
-    if (ehp <= 0) return { win: true, fled: false, turns, hpLeft: p.hp, heals };
+    if (!living().length) return { win: true, fled: false, turns, hpLeft: p.hp, heals, defends };
 
-    /* --- 敵の行動（battle.js の enemyPhase と同じ分岐） --- */
-    if (sleep > 0) { sleep--; continue; }
-    if (d.breath && Math.random() < d.breath) {
-      p.hp = Math.max(0, p.hp - (26 + Math.floor(Math.random() * 14)));
-    } else if (d.spell && Math.random() < d.spell.rate) {
-      p.hp = Math.max(0, p.hp - Math.max(1, Math.floor(SPELLS[d.spell.id].power() * 0.85)));
-    } else {
-      p.hp = Math.max(0, p.hp - damage(d.atk, defOf(p)));
+    /* --- 敵（生存している順に行動） --- */
+    for (const e of group) {
+      if (!e.alive) continue;
+      const rg = e.def.rage;
+      if (rg && !e.raged && e.hp <= e.maxhp * rg.at) { e.raged = true; continue; }   // 変身に1ターン使う
+      const cur = e.raged ? Object.assign({}, e.def, e.def.rage) : e.def;
+      if (e.sleep > 0) { e.sleep--; continue; }
+      let dmg;
+      if (cur.breath && Math.random() < cur.breath) dmg = 26 + Math.floor(Math.random() * 14);
+      else if (cur.spell && Math.random() < cur.spell.rate) dmg = Math.max(1, Math.floor(SPELLS[cur.spell.id].power() * 0.85));
+      else dmg = damage(cur.atk, defOf(p));
+      if (defending) dmg = Math.max(1, Math.floor(dmg * 0.5));
+      p.hp = Math.max(0, p.hp - dmg);
+      if (p.hp <= 0) return { win: false, fled: false, turns, hpLeft: 0, heals, defends };
     }
-    if (p.hp <= 0) return { win: false, fled: false, turns, hpLeft: 0, heals };
   }
-  return { win: false, fled: false, turns, hpLeft: p.hp, heals, timeout: true };
+  return { win: false, fled: false, turns, hpLeft: p.hp, heals, defends, timeout: true };
 }
 
 /* =====================================================================
@@ -95,7 +139,7 @@ zako.forEach((id) => {
     const w = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : 4;
     const a = lv <= 2 ? 1 : lv <= 4 ? 2 : lv <= 6 ? 3 : 3;
     let win = 0;
-    for (let i = 0; i < 2000; i++) if (simBattle(mkPlayer(lv, w, a), id).win) win++;
+    for (let i = 0; i < 2000; i++) if (simBattle(mkPlayer(lv, w, a), makeGroup(id)).win) win++;
     return String(Math.round((win / 2000) * 100)).padStart(3) + '% ';
   });
   console.log(ENEMIES[id].name.padEnd(12, '　').slice(0, 12) + ' ' + row.join(''));
@@ -114,7 +158,7 @@ kits.forEach((k) => {
   const cells = [6, 7, 8, 9, 10, 11, 12].map((lv) => {
     let win = 0, turnSum = 0;
     for (let i = 0; i < 4000; i++) {
-      const r = simBattle(mkPlayer(lv, k.w, k.a), 'boss');
+      const r = simBattle(mkPlayer(lv, k.w, k.a), makeGroup('boss', true));
       if (r.win) { win++; turnSum += r.turns; }
     }
     return { lv, rate: win / 4000, turns: win ? turnSum / win : 0 };
@@ -123,6 +167,20 @@ kits.forEach((k) => {
   console.log('  ' + cells.map((c) => 'Lv' + c.lv + ': ' + String(Math.round(c.rate * 100)).padStart(3) + '%').join('   '));
   console.log('  平均ターン ' + cells.map((c) => (c.turns ? c.turns.toFixed(1) : '—')).join('  '));
 });
+
+/* =====================================================================
+   2.5) 中ボス「もんばんの がいこつ」
+   ===================================================================== */
+console.log('\n=== もんばんの がいこつ の勝率（N=3000）===');
+[{ label: 'どうのつるぎ＋かわのよろい', w: 2, a: 2 }, { label: 'てつのやり＋かわのよろい', w: 3, a: 2 }]
+  .forEach((k) => {
+    const cells = [5, 6, 7, 8, 9].map((lv) => {
+      let win = 0;
+      for (let i = 0; i < 3000; i++) if (simBattle(mkPlayer(lv, k.w, k.a), makeGroup('gatekeeper', true)).win) win++;
+      return 'Lv' + lv + ': ' + String(Math.round((win / 3000) * 100)).padStart(3) + '%';
+    });
+    console.log('  ' + k.label + '  ' + cells.join('  '));
+  });
 
 /* =====================================================================
    3) レベリング：普通に戦い続けて何戦でボスに挑めるか
@@ -141,10 +199,10 @@ function grind(trials) {
         : p.lv <= 5 ? G.ENC.field_far.table
           : p.lv <= 7 ? G.ENC.cave1.table : G.ENC.cave2.table;
       const id = table[Math.floor(Math.random() * table.length)];
-      const r = simBattle(p, id);
+      const r = simBattle(p, makeGroup(id));
       battles++;
       if (r.win) {
-        p.exp += ENEMIES[id].exp; p.gold += ENEMIES[id].gold; p.kills++;
+        p.exp += ENEMIES[id].exp; p.gold += ENEMIES[id].gold; p.kills++;   // 1体ぶんで控えめに見積もる
       } else if (!r.fled) {
         deaths++; p.gold = Math.floor(p.gold / 2);
       }
