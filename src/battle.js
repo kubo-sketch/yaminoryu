@@ -63,7 +63,7 @@
       const self = this;
       this.phase = 'msg';
       const label = n > 1 ? d.name + ' ' + n +'たいが' : d.name + 'が';
-      G.msg.show(label + ' あらわれた！', function () { self.phase = 'command'; self.pickTarget(); });
+      G.msg.show(label + ' あらわれた！', function () { self.phase = 'command'; self.pickTarget(); }, { auto: 700 });
     },
 
     living: function () { return this.enemies.filter(function (e) { return e.alive; }); },
@@ -111,9 +111,11 @@
       this.cmd = 0;
       this.pickTarget();
     },
+    // 戦闘中の実況は自動で流す（読み終えて 620ms で次へ）。
+    // ボタンを押せば即座に飛ばせるので、速い人は待たされない。
     say: function (text, after) {
       const self = this;
-      G.msg.show(text, after || function () { self.next(); });
+      G.msg.show(text, after || function () { self.next(); }, { auto: 620 });
     },
 
     /* =====================================================================
@@ -362,9 +364,8 @@
       p.kills += this.enemies.length;
 
       G.msg.show([
-        'まものを たおした！',
-        p.name + 'は ' + exp + 'ポイントの\nけいけんちを かくとくした！',
-        gold + 'ゴールドを てにいれた！',
+        'まものを たおした！\n' + p.name + 'は ' + exp + 'ポイントの けいけんちと\n'
+          + gold + 'ゴールドを てにいれた！',
       ], function () {
         const ups = G.checkLevelUp();
         if (ups.length) {

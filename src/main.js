@@ -131,7 +131,7 @@
           'きを つけて いくのだぞ。',
         ], function () {
           p.hp = p.maxhp; p.mp = p.maxmp; p.poison = 0;
-          G.field.enter('town', 24, 21, 3);
+          G.field.enter('town', 24, 20, 3);
           G.state = 'field';
           G.gameover.shown = 0;
           G.gameover.t = 0;

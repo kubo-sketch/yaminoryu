@@ -149,14 +149,17 @@
   /* =====================================================================
      メッセージ（1文字ずつ表示 → OKで次へ）
      ===================================================================== */
-  const MSG_SPEED = 26;   // 1文字あたり ms
+  const MSG_SPEED = 20;   // 1文字あたり ms
   G.msg = {
     queue: [], full: '', shown: 0, t: 0, active: false, cb: null, waiting: false,
+    auto: 0, autoT: 0,          // auto>0 なら読み終わり後その ms で自動送り
     // lines: 文字列 or 文字列配列。cb は全部読み終わったあとに呼ぶ
-    show: function (lines, cb) {
+    // opt.auto: 自動送りまでの ms（戦闘のテンポを保つために使う）
+    show: function (lines, cb, opt) {
       this.queue = (typeof lines === 'string' ? [lines] : lines.slice());
       this.cb = cb || null;
       this.active = true;
+      this.auto = (opt && opt.auto) || 0;
       this.next();
     },
     next: function () {
@@ -167,7 +170,7 @@
         return;
       }
       this.full = this.queue.shift();
-      this.shown = 0; this.t = 0; this.waiting = false;
+      this.shown = 0; this.t = 0; this.waiting = false; this.autoT = 0;
     },
     update: function (dt) {
       if (!this.active) return;
@@ -185,6 +188,13 @@
         if (G.pressed('ok') || G.pressed('cancel')) {
           G.audio.se('confirm');
           this.next();
+          return;
+        }
+        // 戦闘では放っておいても進む。1手ごとにボタンを押させると
+        // 雑魚戦が冗長になり、手触りが一番悪くなる
+        if (this.auto) {
+          this.autoT += dt;
+          if (this.autoT >= this.auto) this.next();
         }
       }
     },
@@ -202,6 +212,7 @@
     },
     clear: function () {
       this.queue = []; this.active = false; this.waiting = false; this.cb = null;
+      this.auto = 0; this.autoT = 0;
     },
   };
 

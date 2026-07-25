@@ -944,325 +944,333 @@
   }
 
   /* =====================================================================
-     敵（96x96。面積が2.25倍になったぶん、鱗・毛・装備・光沢まで描く）
+     敵（96x96）
      ---------------------------------------------------------------------
-     解像度を上げただけでは密度は出ない。各パーツを
-     「暗部 → 基本 → 明部 → ハイライト」の4段で塗り、
-     質感（鱗・骨・布のしわ・金属の反射）を1枚ずつ置いていく。
+     前回の反省：パーツを描き込んでもシルエットが弱いと迫力が出ない。
+     「影絵にしたとき何の生き物か分かるか」を先に決めてから中身を塗る。
+
+       スライム   … 低く横に広い半球（他より明らかに小さい＝雑魚の記号）
+       コウモリ   … 体は小さく翼が横いっぱい。横長のシルエット
+       ゴブリン   … 猫背で縦長。頭は小さく、腕が長い
+       がいこつ   … 細く縦に長い。隙間が多い
+       まどうし   … 裾が広がる三角。帽子で背丈を稼ぐ
+       やみのりゅう… 首を長く、翼を大きく、体高を出す。縦にも横にも最大
      ===================================================================== */
   function eSlime() {
     const c = mk(96, 96), g = c.getContext('2d');
-    const CY = 82, RX = 36, RY = 46;
+    const CY = 84, RX = 33, RY = 40;
     dome(g, 48, CY, RX, RY, P.wt2);
-    // 下ほど濃く（body の丸み）
-    for (let y = 50; y <= CY; y++)
-      for (let x = 10; x < 86; x++)
+    for (let y = 52; y <= CY; y++)
+      for (let x = 12; x < 84; x++)
         if (((x - 48) * (x - 48)) / (RX * RX) + ((y - CY) * (y - CY)) / (RY * RY) <= 1.04)
-          px(g, x, y, y > CY - 12 ? P.wt0 : y > CY - 26 ? P.wt1 : P.wt2);
-    // 上面の透過光
-    for (let y = 40; y <= 62; y++)
-      for (let x = 20; x < 66; x++)
-        if (((x - 42) * (x - 42)) / (23 * 23) + ((y - 68) * (y - 68)) / (34 * 34) <= 1.0)
+          px(g, x, y, y > CY - 10 ? P.wt0 : y > CY - 22 ? P.wt1 : P.wt2);
+    for (let y = 48| 0; y <= 66; y++)
+      for (let x = 22; x < 64; x++)
+        if (((x - 42) * (x - 42)) / (21 * 21) + ((y - 72) * (y - 72)) / (30 * 30) <= 1.0)
           px(g, x, y, P.wt3);
-    ellipse(g, 34, 48, 10, 8, P.wt4);
-    ellipse(g, 32, 46, 5, 4, P.white);              // ハイライト
-    px(g, 30, 44, P.white, 3, 2);
-    // 底の接地面
-    px(g, 12, CY, P.wt1, 72, 2);
-    px(g, 16, CY + 2, P.wt0, 64, 1);
-    // 粘液の垂れ
+    ellipse(g, 34, 54, 9, 7, P.wt4);
+    ellipse(g, 32, 52, 5, 4, P.white);
+    px(g, 30, 50, P.white, 3, 2);
+    px(g, 14, CY, P.wt1, 68, 2);
+    px(g, 18, CY + 2, P.wt0, 60, 1);
     for (let i = 0; i < 4; i++) {
-      const x = 22 + i * 17, h = 5 + ((i * 7) % 9);
+      const x = 24 + i * 16, h = 4 + ((i * 7) % 8);
       px(g, x, CY - 2, P.wt1, 4, h);
       px(g, x + 1, CY + h - 4, P.wt0, 2, 3);
     }
-    // 目と口
-    px(g, 30, 60, P.out, 9, 13); px(g, 57, 60, P.out, 9, 13);
-    px(g, 32, 62, P.white, 5, 8); px(g, 59, 62, P.white, 5, 8);
-    px(g, 32, 66, P.wt4, 5, 4); px(g, 59, 66, P.wt4, 5, 4);
-    px(g, 33, 63, P.white, 2, 2); px(g, 60, 63, P.white, 2, 2);
-    px(g, 40, 74, P.out, 16, 3);
-    px(g, 38, 72, P.out, 2, 2); px(g, 56, 72, P.out, 2, 2);
-    px(g, 42, 78, P.wt3, 12, 2);
+    px(g, 31, 64, P.out, 9, 12); px(g, 56, 64, P.out, 9, 12);
+    px(g, 33, 66, P.white, 5, 7); px(g, 58, 66, P.white, 5, 7);
+    px(g, 33, 70, P.wt4, 5, 3); px(g, 58, 70, P.wt4, 5, 3);
+    px(g, 34, 67, P.white, 2, 2); px(g, 59, 67, P.white, 2, 2);
+    px(g, 40, 76, P.out, 16, 3);
+    px(g, 38, 74, P.out, 2, 2); px(g, 56, 74, P.out, 2, 2);
     outline(c, P.out);
     return c;
   }
 
   function eBat() {
     const c = mk(96, 96), g = c.getContext('2d');
-    // 翼（膜＋骨＋縁の毛羽）
-    tri3(g, 42, 34, 2, 16, 10, 62, P.pp1);
-    tri3(g, 42, 34, 10, 62, 38, 58, P.pp1);
-    tri3(g, 54, 34, 94, 16, 86, 62, P.pp2);
-    tri3(g, 54, 34, 86, 62, 58, 58, P.pp2);
+    // 翼を横いっぱいに広げる。体は小さく保ち、横長のシルエットにする
+    const WY = 34;
+    tri3(g, 40, WY, 0, 8, 4, 56, P.pp1);
+    tri3(g, 40, WY, 4, 56, 22, 62, P.pp1);
+    tri3(g, 40, WY, 22, 62, 38, 54, P.pp1);
+    tri3(g, 56, WY, 96, 8, 92, 56, P.pp2);
+    tri3(g, 56, WY, 92, 56, 74, 62, P.pp2);
+    tri3(g, 56, WY, 74, 62, 58, 54, P.pp2);
     for (let i = 0; i < 4; i++) {
       const t = (i + 1) / 5;
-      const ex = Math.round(2 + t * 10), ey = Math.round(16 + t * 44);
-      for (let sN = 0; sN <= 18; sN++) {
-        const k = sN / 18;
-        px(g, Math.round(42 + (ex - 42) * k), Math.round(34 + (ey - 34) * k), P.pp3);
-        px(g, Math.round(54 + (94 - ex - 54) * k), Math.round(34 + (ey - 34) * k), P.pp3);
+      const ex = Math.round(t * 22), ey = Math.round(8 + t * 54);
+      for (let k = 0; k <= 22; k++) {
+        const q = k / 22;
+        px(g, Math.round(40 + (ex - 40) * q), Math.round(WY + (ey - WY) * q), P.pp3);
+        px(g, Math.round(56 + (96 - ex - 56) * q), Math.round(WY + (ey - WY) * q), P.pp3);
       }
     }
-    px(g, 26, 30, P.pp3, 20, 5); px(g, 50, 30, P.pp3, 20, 5);
-    // 胴（毛の質感）
-    ellipse(g, 48, 52, 15, 21, P.pp2);
-    ellipse(g, 44, 46, 11, 14, P.pp3);
-    ellipse(g, 48, 64, 12, 9, P.pp1);
-    for (let i = 0; i < 22; i++) px(g, 36 + ((i * 5) % 24), 38 + ((i * 7) % 30), P.pp4);
-    // 頭
-    disc(g, 48, 34, 17, P.pp2);
-    disc(g, 43, 28, 11, P.pp3);
-    disc(g, 41, 25, 5, P.pp4);
-    tri(g, 34, 3, 6, 19, P.pp2); tri(g, 62, 3, 6, 19, P.pp2);
-    tri(g, 34, 8, 3, 13, P.pp1); tri(g, 62, 8, 3, 13, P.pp1);
-    // 目
-    px(g, 36, 30, P.re0, 11, 9); px(g, 50, 30, P.re0, 11, 9);
-    px(g, 37, 31, P.re2, 9, 7); px(g, 51, 31, P.re2, 9, 7);
-    px(g, 39, 32, P.gd3, 5, 4); px(g, 53, 32, P.gd3, 5, 4);
-    px(g, 40, 33, P.white, 2, 2); px(g, 54, 33, P.white, 2, 2);
-    px(g, 34, 26, P.pp0, 13, 3); px(g, 50, 26, P.pp0, 13, 3);   // 眉
-    // 口と牙
-    px(g, 40, 44, P.out, 16, 5);
-    px(g, 41, 47, P.bn4, 4, 7); px(g, 51, 47, P.bn4, 4, 7);
-    px(g, 46, 46, P.re1, 5, 3);
-    // 足
-    px(g, 40, 70, P.pp1, 6, 10); px(g, 51, 70, P.pp1, 6, 10);
-    for (let i = 0; i < 3; i++) { px(g, 38 + i * 3, 78, P.bn2, 2, 5); px(g, 49 + i * 3, 78, P.bn2, 2, 5); }
+    px(g, 16, 26, P.pp3, 26, 6); px(g, 54, 26, P.pp3, 26, 6);   // 翼の前縁
+    px(g, 2, 8, P.bn2, 5, 5); px(g, 89, 8, P.bn2, 5, 5);        // 翼の爪
+    ellipse(g, 48, 48, 11, 16, P.pp2);                          // 胴（小さめ）
+    ellipse(g, 45, 43, 8, 11, P.pp3);
+    ellipse(g, 48, 58, 9, 7, P.pp1);
+    for (let i = 0; i < 18; i++) px(g, 40 + ((i * 5) % 17), 38 + ((i * 7) % 24), P.pp4);
+    disc(g, 48, 30, 13, P.pp2);
+    disc(g, 44, 26, 8, P.pp3);
+    disc(g, 42, 23, 4, P.pp4);
+    tri(g, 37, 2, 5, 17, P.pp2); tri(g, 59, 2, 5, 17, P.pp2);
+    tri(g, 37, 6, 2, 12, P.pp1); tri(g, 59, 6, 2, 12, P.pp1);
+    px(g, 39, 27, P.re0, 8, 7); px(g, 49, 27, P.re0, 8, 7);
+    px(g, 40, 28, P.re2, 6, 5); px(g, 50, 28, P.re2, 6, 5);
+    px(g, 41, 29, P.gd3, 4, 3); px(g, 51, 29, P.gd3, 4, 3);
+    px(g, 42, 30, P.white, 2, 2); px(g, 52, 30, P.white, 2, 2);
+    px(g, 36, 23, P.pp0, 11, 3); px(g, 49, 23, P.pp0, 11, 3);
+    px(g, 42, 38, P.out, 12, 4);
+    px(g, 43, 40, P.bn4, 3, 6); px(g, 50, 40, P.bn4, 3, 6);
+    px(g, 42, 64, P.pp1, 5, 9); px(g, 49, 64, P.pp1, 5, 9);
+    for (let i = 0; i < 3; i++) { px(g, 40 + i * 3, 71, P.bn2, 2, 5); px(g, 48 + i * 3, 71, P.bn2, 2, 5); }
     outline(c, P.out);
     return c;
   }
 
   function eGoblin() {
     const c = mk(96, 96), g = c.getContext('2d');
-    px(g, 31, 68, P.gn1, 11, 20); px(g, 54, 68, P.gn1, 11, 20);
-    px(g, 31, 68, P.gn2, 5, 20); px(g, 54, 68, P.gn2, 5, 20);
-    px(g, 28, 85, P.wd1, 16, 8); px(g, 52, 85, P.wd1, 16, 8);
-    px(g, 28, 85, P.wd3, 16, 2); px(g, 52, 85, P.wd3, 16, 2);
-    // 胴（胸筋と腹の陰影）
-    ellipse(g, 48, 60, 20, 18, P.gn2);
-    ellipse(g, 42, 54, 13, 12, P.gn3);
-    ellipse(g, 40, 50, 7, 6, P.gn4);
-    ellipse(g, 48, 70, 16, 9, P.gn1);
-    px(g, 46, 48, P.gn1, 3, 18);                     // 胸の谷
-    for (let i = 0; i < 3; i++) px(g, 40, 60 + i * 5, P.gn1, 16, 1);   // 腹筋
-    // 腰布（模様つき）
-    px(g, 28, 64, P.wd2, 40, 13);
-    px(g, 28, 64, P.wd4, 40, 3);
-    px(g, 28, 74, P.wd0, 40, 3);
-    for (let i = 0; i < 5; i++) px(g, 31 + i * 8, 67, P.re2, 4, 5);
-    // 腕
-    px(g, 22, 42, P.gn1, 11, 27); px(g, 63, 42, P.gn1, 11, 27);
-    px(g, 22, 42, P.gn2, 5, 27); px(g, 69, 42, P.gn0, 5, 27);
-    px(g, 20, 64, P.gn2, 13, 9); px(g, 63, 64, P.gn2, 13, 9);
-    px(g, 24, 46, P.st1, 8, 4); px(g, 64, 46, P.st1, 8, 4);        // 腕輪
-    // 頭
-    disc(g, 48, 30, 20, P.gn2);
-    disc(g, 42, 23, 12, P.gn3);
-    disc(g, 40, 20, 6, P.gn4);
-    tri3(g, 28, 15, 28, 42, 3, 22, P.gn2);
-    tri3(g, 68, 15, 68, 42, 93, 22, P.gn2);
-    tri3(g, 28, 20, 28, 37, 10, 24, P.gn1);
-    tri3(g, 68, 20, 68, 37, 86, 24, P.gn1);
-    px(g, 32, 26, P.gd3, 10, 8); px(g, 54, 26, P.gd3, 10, 8);
-    px(g, 34, 28, P.out, 6, 6); px(g, 56, 28, P.out, 6, 6);
-    px(g, 35, 29, P.gd4, 2, 2); px(g, 57, 29, P.gd4, 2, 2);
-    px(g, 29, 20, P.gn0, 14, 4); px(g, 53, 20, P.gn0, 14, 4);      // 眉
-    px(g, 44, 34, P.gn1, 8, 5);                                    // 鼻
-    px(g, 36, 42, P.out, 24, 7);                                   // 口
-    for (let i = 0; i < 4; i++) px(g, 38 + i * 6, 42, P.bn4, 4, 5);
-    px(g, 30, 18, P.gn0, 8, 2);                                    // 傷跡
-    px(g, 32, 15, P.gn0, 2, 6);
-    // こんぼう
-    px(g, 68, 22, P.wd1, 9, 48); px(g, 70, 24, P.wd3, 3, 44);
-    px(g, 63, 4, P.wd1, 19, 20); px(g, 65, 6, P.wd2, 14, 15);
-    px(g, 67, 8, P.wd4, 6, 5);
-    for (let i = 0; i < 4; i++) px(g, 64 + (i % 2) * 9, 8 + i * 4, P.st2, 4, 4);   // 打ち込んだ鋲
+    // 猫背で縦長。頭を小さくして、腕を長く垂らす
+    px(g, 33, 70, P.gn1, 11, 18); px(g, 52, 70, P.gn1, 11, 18);
+    px(g, 33, 70, P.gn2, 5, 18);
+    px(g, 30, 85, P.wd1, 16, 8); px(g, 50, 85, P.wd1, 16, 8);
+    px(g, 30, 85, P.wd3, 16, 2); px(g, 50, 85, P.wd3, 16, 2);
+    ellipse(g, 48, 54, 17, 22, P.gn2);                           // 胴（縦長）
+    ellipse(g, 42, 48, 11, 15, P.gn3);
+    ellipse(g, 40, 42, 6, 6, P.gn4);
+    ellipse(g, 48, 68, 14, 9, P.gn1);
+    px(g, 46, 36, P.gn1, 3, 22);
+    for (let i = 0; i < 4; i++) px(g, 41, 52 + i * 5, P.gn1, 14, 1);
+    px(g, 30, 62, P.wd2, 36, 12);                                // 腰布
+    px(g, 30, 62, P.wd4, 36, 3);
+    px(g, 30, 71, P.wd0, 36, 3);
+    for (let i = 0; i < 4; i++) px(g, 34 + i * 9, 65, P.re2, 4, 5);
+    // 腕は長く、膝の高さまで垂らす
+    px(g, 24, 36, P.gn1, 10, 34); px(g, 62, 36, P.gn1, 10, 34);
+    px(g, 24, 36, P.gn2, 4, 34); px(g, 68, 36, P.gn0, 4, 34);
+    px(g, 21, 66, P.gn2, 13, 10); px(g, 62, 66, P.gn2, 13, 10);
+    px(g, 26, 40, P.st1, 7, 4); px(g, 63, 40, P.st1, 7, 4);
+    disc(g, 48, 24, 16, P.gn2);                                  // 頭（前より小さい）
+    disc(g, 43, 19, 10, P.gn3);
+    disc(g, 41, 16, 5, P.gn4);
+    tri3(g, 32, 12, 32, 34, 8, 18, P.gn2);
+    tri3(g, 64, 12, 64, 34, 88, 18, P.gn2);
+    tri3(g, 32, 16, 32, 30, 14, 20, P.gn1);
+    tri3(g, 64, 16, 64, 30, 82, 20, P.gn1);
+    px(g, 36, 21, P.gd3, 8, 7); px(g, 52, 21, P.gd3, 8, 7);
+    px(g, 38, 23, P.out, 5, 5); px(g, 54, 23, P.out, 5, 5);
+    px(g, 39, 24, P.gd4, 2, 2); px(g, 55, 24, P.gd4, 2, 2);
+    px(g, 34, 16, P.gn0, 12, 3); px(g, 51, 16, P.gn0, 12, 3);
+    px(g, 45, 28, P.gn1, 6, 4);
+    px(g, 39, 34, P.out, 19, 6);
+    for (let i = 0; i < 4; i++) px(g, 41 + i * 5, 34, P.bn4, 3, 4);
+    // こんぼう（長く、上に突き出す）
+    px(g, 68, 20, P.wd1, 9, 50); px(g, 70, 22, P.wd3, 3, 46);
+    px(g, 63, 2, P.wd1, 19, 20); px(g, 65, 4, P.wd2, 14, 15);
+    px(g, 67, 6, P.wd4, 6, 5);
+    for (let i = 0; i < 4; i++) px(g, 64 + (i % 2) * 9, 6 + i * 4, P.st2, 4, 4);
     outline(c, P.out);
     return c;
   }
 
   function eSkeleton() {
     const c = mk(96, 96), g = c.getContext('2d');
-    px(g, 36, 66, P.bn2, 9, 23); px(g, 51, 66, P.bn2, 9, 23);
-    px(g, 36, 66, P.bn3, 3, 23); px(g, 57, 66, P.bn0, 3, 23);
-    px(g, 34, 74, P.bn1, 13, 4); px(g, 49, 74, P.bn1, 13, 4);      // 膝
-    px(g, 31, 87, P.bn2, 16, 6); px(g, 49, 87, P.bn2, 16, 6);
-    px(g, 34, 60, P.bn2, 28, 9); px(g, 34, 66, P.bn1, 28, 3);      // 骨盤
-    px(g, 44, 38, P.bn1, 8, 24);                                    // 背骨
-    for (let i = 0; i < 5; i++) px(g, 43, 40 + i * 5, P.bn0, 10, 2);
-    // 肋骨
-    for (let i = 0; i < 5; i++) {
-      const y = 39 + i * 6, len = 16 - i * 2;
-      px(g, 48 - len, y, P.bn2, len, 3); px(g, 48, y, P.bn2, len, 3);
-      px(g, 46 - len, y + 2, P.bn2, 3, 4); px(g, 46 + len, y + 2, P.bn2, 3, 4);
-      px(g, 48 - len, y + 2, P.bn1, len * 2, 1);
+    // 細く縦に長い。体の中に隙間があるのが骨のシルエット
+    px(g, 38, 68, P.bn2, 7, 22); px(g, 51, 68, P.bn2, 7, 22);
+    px(g, 38, 68, P.bn3, 2, 22); px(g, 56, 68, P.bn0, 2, 22);
+    px(g, 36, 76, P.bn1, 11, 4); px(g, 49, 76, P.bn1, 11, 4);
+    px(g, 33, 88, P.bn2, 14, 6); px(g, 49, 88, P.bn2, 14, 6);
+    px(g, 37, 62, P.bn2, 22, 8); px(g, 37, 67, P.bn1, 22, 3);
+    px(g, 45, 34, P.bn1, 6, 28);
+    for (let i = 0; i < 6; i++) px(g, 44, 36 + i * 5, P.bn0, 8, 2);
+    for (let i = 0; i < 5; i++) {                                // 肋骨（細く）
+      const y = 36 + i * 6, len = 14 - i * 2;
+      px(g, 48 - len, y, P.bn2, len, 2); px(g, 48, y, P.bn2, len, 2);
+      px(g, 47 - len, y + 1, P.bn2, 2, 4); px(g, 47 + len, y + 1, P.bn2, 2, 4);
       px(g, 48 - len, y, P.bn3, len, 1);
     }
-    // 肩当て（鎧の断片）
-    px(g, 26, 32, P.st1, 20, 12); px(g, 26, 32, P.st3, 20, 4);
-    px(g, 50, 32, P.st1, 20, 12); px(g, 50, 32, P.st3, 20, 4);
-    px(g, 26, 42, P.st0, 20, 3); px(g, 50, 42, P.st0, 20, 3);
-    px(g, 30, 35, P.gd2, 5, 5); px(g, 61, 35, P.gd2, 5, 5);
-    // 腕
-    px(g, 22, 44, P.bn2, 8, 24); px(g, 66, 44, P.bn2, 8, 24);
-    px(g, 22, 44, P.bn3, 3, 24); px(g, 71, 44, P.bn0, 3, 24);
-    px(g, 19, 64, P.bn2, 12, 8); px(g, 65, 64, P.bn2, 12, 8);
-    // 頭蓋
-    disc(g, 48, 22, 18, P.bn2);
-    disc(g, 42, 16, 11, P.bn3);
-    disc(g, 40, 13, 5, P.bn4);
-    px(g, 34, 19, P.out, 11, 11); px(g, 51, 19, P.out, 11, 11);
-    px(g, 36, 21, P.re0, 8, 8); px(g, 53, 21, P.re0, 8, 8);
-    px(g, 38, 23, P.re2, 5, 5); px(g, 55, 23, P.re2, 5, 5);
-    px(g, 39, 24, P.re4, 2, 2); px(g, 56, 24, P.re4, 2, 2);
-    px(g, 44, 31, P.out, 6, 5);                                     // 鼻腔
-    px(g, 36, 36, P.bn1, 22, 6);                                    // 歯
-    for (let i = 0; i < 8; i++) px(g, 37 + i * 3, 36, P.bn4, 2, 6);
-    px(g, 30, 10, P.bn0, 10, 3);                                    // 頭蓋のひび
-    px(g, 34, 6, P.bn0, 3, 8);
-    // 剣（刃の反射）
-    px(g, 70, 2, P.sl1, 8, 54); px(g, 72, 4, P.sl3, 4, 50);
-    px(g, 73, 4, P.sl4, 2, 44);
-    px(g, 72, 30, P.white, 3, 10);
-    px(g, 62, 54, P.gd1, 24, 6); px(g, 62, 54, P.gd3, 24, 3);
-    px(g, 70, 60, P.wd1, 8, 14); px(g, 72, 60, P.wd3, 3, 14);
-    px(g, 69, 72, P.gd2, 10, 5);
+    px(g, 28, 28, P.st1, 18, 11); px(g, 28, 28, P.st3, 18, 4);   // 肩当て
+    px(g, 50, 28, P.st1, 18, 11); px(g, 50, 28, P.st3, 18, 4);
+    px(g, 28, 37, P.st0, 18, 3); px(g, 50, 37, P.st0, 18, 3);
+    px(g, 32, 31, P.gd2, 5, 5); px(g, 59, 31, P.gd2, 5, 5);
+    px(g, 24, 39, P.bn2, 7, 26); px(g, 65, 39, P.bn2, 7, 26);
+    px(g, 24, 39, P.bn3, 2, 26); px(g, 70, 39, P.bn0, 2, 26);
+    px(g, 21, 62, P.bn2, 11, 8); px(g, 64, 62, P.bn2, 11, 8);
+    disc(g, 48, 18, 16, P.bn2);                                  // 頭蓋
+    disc(g, 43, 13, 10, P.bn3);
+    disc(g, 41, 10, 4, P.bn4);
+    px(g, 36, 15, P.out, 10, 10); px(g, 51, 15, P.out, 10, 10);
+    px(g, 38, 17, P.re0, 7, 7); px(g, 53, 17, P.re0, 7, 7);
+    px(g, 39, 19, P.re2, 5, 4); px(g, 54, 19, P.re2, 5, 4);
+    px(g, 40, 20, P.re4, 2, 2); px(g, 55, 20, P.re4, 2, 2);
+    px(g, 45, 26, P.out, 6, 4);
+    px(g, 38, 30, P.bn1, 20, 5);
+    for (let i = 0; i < 7; i++) px(g, 39 + i * 3, 30, P.bn4, 2, 5);
+    px(g, 32, 7, P.bn0, 9, 3); px(g, 36, 3, P.bn0, 3, 7);
+    px(g, 72, 0, P.sl1, 8, 58); px(g, 74, 2, P.sl3, 4, 54);      // 剣
+    px(g, 75, 2, P.sl4, 2, 48);
+    px(g, 74, 28, P.white, 3, 12);
+    px(g, 64, 56, P.gd1, 24, 6); px(g, 64, 56, P.gd3, 24, 3);
+    px(g, 72, 62, P.wd1, 8, 15); px(g, 74, 62, P.wd3, 3, 15);
+    px(g, 71, 75, P.gd2, 10, 5);
     outline(c, P.out);
     return c;
   }
 
   function eMage() {
     const c = mk(96, 96), g = c.getContext('2d');
-    // ローブ（襞を強調）
-    tri3(g, 48, 44, 10, 94, 86, 94, P.pp2);
-    tri3(g, 48, 44, 18, 94, 48, 94, P.pp3);
-    tri3(g, 48, 44, 62, 94, 86, 94, P.pp1);
-    px(g, 10, 89, P.pp1, 76, 6);
-    for (let i = 0; i < 7; i++) {
-      const x = 16 + i * 11;
-      px(g, x, 66, P.pp1, 3, 28);
-      px(g, x + 3, 70, P.pp3, 2, 24);
+    // 裾が大きく広がる三角＋高い帽子。縦にも横にも「浮いた三角」
+    tri3(g, 48, 40, 4, 94, 92, 94, P.pp2);
+    tri3(g, 48, 40, 14, 94, 48, 94, P.pp3);
+    tri3(g, 48, 40, 60, 94, 92, 94, P.pp1);
+    px(g, 4, 88, P.pp1, 88, 7);
+    for (let i = 0; i < 9; i++) {
+      const x = 10 + i * 10;
+      px(g, x, 62, P.pp1, 3, 32);
+      px(g, x + 3, 66, P.pp3, 2, 28);
     }
-    // 胴
-    px(g, 30, 38, P.pp2, 36, 30);
-    px(g, 30, 38, P.pp3, 36, 5);
-    px(g, 58, 42, P.pp1, 8, 26);
-    px(g, 44, 42, P.gd2, 6, 30);                                    // 前あわせ
-    px(g, 44, 42, P.gd4, 2, 30);
-    px(g, 38, 56, P.gd2, 18, 5); px(g, 38, 56, P.gd4, 18, 2);
-    // 顔（影の中に光る目）
-    disc(g, 48, 30, 17, P.dark);
-    disc(g, 48, 29, 13, '#07060c');
-    px(g, 35, 28, P.gd2, 10, 6); px(g, 52, 28, P.gd2, 10, 6);
-    px(g, 36, 29, P.gd4, 8, 4); px(g, 53, 29, P.gd4, 8, 4);
-    px(g, 38, 30, P.white, 3, 2); px(g, 55, 30, P.white, 3, 2);
-    // 帽子
-    px(g, 20, 16, P.pp1, 56, 8);
-    px(g, 20, 16, P.pp3, 56, 3);
-    px(g, 20, 22, P.pp0, 56, 2);
-    tri(g, 43, -16, 15, 34, P.pp2);
-    tri(g, 39, -12, 9, 29, P.pp3);
-    px(g, 32, 2, P.gd2, 8, 7); px(g, 32, 2, P.gd4, 5, 4);
-    // 腕
-    px(g, 20, 42, P.pp2, 13, 20); px(g, 64, 42, P.pp2, 13, 20);
-    px(g, 20, 42, P.pp3, 5, 20); px(g, 72, 42, P.pp1, 5, 20);
-    px(g, 18, 58, P.sk1, 12, 8); px(g, 66, 58, P.sk1, 12, 8);       // 手
-    // 杖（宝玉の発光）
-    px(g, 72, 16, P.wd1, 7, 66); px(g, 74, 18, P.wd3, 3, 62);
-    for (let i = 0; i < 4; i++) px(g, 71, 28 + i * 14, P.gd2, 9, 3);
-    disc(g, 76, 12, 12, 'rgba(200,60,60,0.30)');
-    disc(g, 76, 12, 9, P.re1);
-    disc(g, 75, 11, 6, P.re3);
-    disc(g, 74, 10, 3, P.gd3);
-    disc(g, 74, 9, 1, P.white);
+    px(g, 30, 34, P.pp2, 36, 28);
+    px(g, 30, 34, P.pp3, 36, 5);
+    px(g, 58, 38, P.pp1, 8, 24);
+    px(g, 44, 38, P.gd2, 6, 28);
+    px(g, 44, 38, P.gd4, 2, 28);
+    px(g, 38, 50, P.gd2, 18, 5); px(g, 38, 50, P.gd4, 18, 2);
+    disc(g, 48, 26, 16, P.dark);
+    disc(g, 48, 25, 12, '#07060c');
+    px(g, 36, 24, P.gd2, 9, 6); px(g, 52, 24, P.gd2, 9, 6);
+    px(g, 37, 25, P.gd4, 7, 4); px(g, 53, 25, P.gd4, 7, 4);
+    px(g, 39, 26, P.white, 3, 2); px(g, 55, 26, P.white, 3, 2);
+    px(g, 18, 12, P.pp1, 60, 8);                                 // つば（広い）
+    px(g, 18, 12, P.pp3, 60, 3);
+    px(g, 18, 18, P.pp0, 60, 2);
+    tri(g, 43, -22, 16, 36, P.pp2);                              // 帽子（高い）
+    tri(g, 39, -18, 9, 31, P.pp3);
+    px(g, 31, -2, P.gd2, 9, 8); px(g, 31, -2, P.gd4, 5, 5);
+    px(g, 20, 38, P.pp2, 13, 20); px(g, 64, 38, P.pp2, 13, 20);
+    px(g, 20, 38, P.pp3, 5, 20); px(g, 72, 38, P.pp1, 5, 20);
+    px(g, 17, 54, P.sk1, 13, 9); px(g, 66, 54, P.sk1, 13, 9);
+    px(g, 74, 10, P.wd1, 7, 74); px(g, 76, 12, P.wd3, 3, 70);
+    for (let i = 0; i < 5; i++) px(g, 73, 24 + i * 14, P.gd2, 9, 3);
+    disc(g, 78, 6, 13, 'rgba(200,60,60,0.28)');
+    disc(g, 78, 6, 10, P.re1);
+    disc(g, 77, 5, 6, P.re3);
+    disc(g, 76, 4, 3, P.gd3);
+    disc(g, 76, 3, 1, P.white);
     outline(c, P.out);
     return c;
   }
 
   function eBoss() {
     const c = mk(96, 96), g = c.getContext('2d');
-    // 翼（骨・膜・爪）
-    tri3(g, 36, 56, 0, 4, 2, 48, P.pp1);
-    tri3(g, 36, 56, 2, 48, 26, 70, P.pp1);
-    tri3(g, 60, 56, 96, 4, 94, 48, P.pp2);
-    tri3(g, 60, 56, 94, 48, 70, 70, P.pp2);
-    for (let i = 0; i < 4; i++) {
-      const t = (i + 1) / 5;
-      const ex = Math.round(t * 26), ey = Math.round(4 + t * 66);
-      for (let k = 0; k <= 20; k++) {
-        const q = k / 20;
-        px(g, Math.round(36 + (ex - 36) * q), Math.round(56 + (ey - 56) * q), P.pp3);
-        px(g, Math.round(60 + (96 - ex - 60) * q), Math.round(56 + (ey - 56) * q), P.pp3);
+    // ── シルエット設計 ──
+    // 胸を張って首をまっすぐ上へ伸ばし、翼を左右いっぱいに開く。
+    // 前回は首のS字を強くしすぎて頭が右へ流れ、翼が胴の裏に隠れていた。
+    // 首は「ほぼ垂直・わずかに反る」程度に留め、翼は胴より外から生やす。
+    // 翼：付け根から1枚の大きな三角膜として張り、下端を指の間で波打たせる。
+    // 三角を縦に積むと上辺が垂直に切れて「板」に見えるので1枚で通す。
+    const WX = 33, WY = 48;                                      // 付け根
+    const tipX = 3, tipY = 2;                                    // 先端（上外）
+    const botX = 20, botY = 66;                                  // 下の角
+    tri3(g, WX, WY, tipX, tipY, botX, botY, P.pp1);
+    tri3(g, 96 - WX, WY, 96 - tipX, tipY, 96 - botX, botY, P.pp2);
+    // 指の骨（付け根から膜の縁へ放射）と、その間の膜のたるみ
+    for (let i = 0; i <= 3; i++) {
+      const t = i / 3;
+      const ex = Math.round(tipX + (botX - tipX) * t);
+      const ey = Math.round(tipY + (botY - tipY) * t);
+      for (let k = 0; k <= 28; k++) {
+        const q = k / 28;
+        px(g, Math.round(WX + (ex - WX) * q), Math.round(WY + (ey - WY) * q), P.pp3);
+        px(g, Math.round(96 - WX + (96 - ex - (96 - WX)) * q), Math.round(WY + (ey - WY) * q), P.pp3);
+      }
+      // 膜の外縁を弧でつなぐ（指と指の間がたるむ）
+      if (i < 3) {
+        const t2 = (i + 1) / 3;
+        const ex2 = Math.round(tipX + (botX - tipX) * t2);
+        const ey2 = Math.round(tipY + (botY - tipY) * t2);
+        for (let k = 0; k <= 14; k++) {
+          const q = k / 14;
+          const bx = ex + (ex2 - ex) * q + Math.sin(q * Math.PI) * 5;
+          const by = ey + (ey2 - ey) * q + Math.sin(q * Math.PI) * 3;
+          px(g, Math.round(bx), Math.round(by), P.pp0);
+          px(g, 96 - Math.round(bx), Math.round(by), P.pp0);
+        }
       }
     }
-    px(g, 24, 52, P.pp3, 16, 6); px(g, 56, 52, P.pp3, 16, 6);
-    px(g, 2, 4, P.bn2, 5, 5); px(g, 89, 4, P.bn2, 5, 5);            // 翼の爪
-    // 胴（鱗を1枚ずつ）
-    ellipse(g, 48, 72, 24, 20, P.gn2);
-    ellipse(g, 40, 66, 16, 13, P.gn3);
-    ellipse(g, 37, 62, 8, 6, P.gn4);
-    ellipse(g, 48, 82, 18, 11, P.gn1);
+    // 翼の先端は鋭角なので、爪を置くと浮いて見える。膜だけで通す
+
+    // 胴（縦長・胸を張る）
+    ellipse(g, 48, 68, 18, 21, P.gn2);
+    ellipse(g, 42, 61, 12, 14, P.gn3);
+    ellipse(g, 40, 57, 6, 6, P.gn4);
+    ellipse(g, 48, 81, 14, 10, P.gn1);
     for (let r = 0; r < 4; r++)
-      for (let i = 0; i < 6; i++) {
-        const x = 28 + i * 7 + (r % 2) * 3, y = 58 + r * 7;
-        if ((x - 48) * (x - 48) / (22 * 22) + (y - 72) * (y - 72) / (18 * 18) > 1) continue;
+      for (let i = 0; i < 5; i++) {
+        const x = 35 + i * 7 + (r % 2) * 3, y = 56 + r * 7;
+        if ((x - 48) * (x - 48) / (16 * 16) + (y - 68) * (y - 68) / (19 * 19) > 1) continue;
         dome(g, x, y + 4, 3, 4, P.gn1);
         dome(g, x, y + 3, 3, 3, P.gn3);
       }
-    for (let i = 0; i < 6; i++) {                                   // 腹の甲板
-      px(g, 34 + i * 5, 68 + (i % 2), P.gd2, 4, 15);
-      px(g, 34 + i * 5, 68 + (i % 2), P.gd4, 4, 3);
-      px(g, 34 + i * 5, 81 + (i % 2), P.gd0, 4, 2);
+    for (let i = 0; i < 5; i++) {                                // 腹の甲板
+      px(g, 38 + i * 5, 64 + (i % 2), P.gd2, 4, 17);
+      px(g, 38 + i * 5, 64 + (i % 2), P.gd4, 4, 3);
+      px(g, 38 + i * 5, 79 + (i % 2), P.gd0, 4, 2);
     }
-    // 首（S字＋背びれ）
-    for (let i = 0; i < 26; i++) {
-      const t = i / 25;
-      const x = 48 + Math.round(Math.sin(t * 1.7) * 8);
-      const w = 21 - Math.round(t * 7);
-      px(g, x - (w >> 1), 58 - i, P.gn2, w, 1);
-      px(g, x + (w >> 1) - 6, 58 - i, P.gn1, 6, 1);
-      px(g, x - (w >> 1), 58 - i, P.gn3, 4, 1);
-      if (i % 3 === 0) px(g, x - (w >> 1) + 2, 58 - i, P.gn4, 3, 1);
+
+    // 首：ほぼ垂直に34px。わずかに反らせるだけにして頭を中央に置く
+    for (let i = 0; i < 34; i++) {
+      const t = i / 33;
+      const x = 48 + Math.round(Math.sin(t * 1.1) * 4);
+      const w = 19 - Math.round(t * 8);
+      px(g, x - (w >> 1), 56 - i, P.gn2, w, 1);
+      px(g, x + (w >> 1) - 5, 56 - i, P.gn1, 5, 1);
+      px(g, x - (w >> 1), 56 - i, P.gn3, 4, 1);
+      if (i % 3 === 0) px(g, x - (w >> 1) + 2, 56 - i, P.gn4, 3, 1);
     }
-    for (let i = 0; i < 7; i++) tri(g, 56 + i, 50 - i * 4, 3, 6, P.bn2);
-    // 頭
-    disc(g, 50, 22, 17, P.gn2);
-    disc(g, 44, 16, 11, P.gn3);
-    disc(g, 42, 13, 5, P.gn4);
-    ellipse(g, 50, 33, 15, 7, P.gn2);                               // 口吻
-    ellipse(g, 50, 36, 14, 4, P.gn1);
-    px(g, 44, 28, P.gn1, 4, 4); px(g, 54, 28, P.gn1, 4, 4);         // 鼻孔
-    tri(g, 34, -2, 6, 19, P.bn3); tri(g, 66, -2, 6, 19, P.bn3);     // 角
-    px(g, 33, 6, P.bn1, 4, 9); px(g, 65, 6, P.bn1, 4, 9);
-    tri(g, 28, 12, 4, 12, P.bn2); tri(g, 72, 12, 4, 12, P.bn2);
-    // 目
-    px(g, 36, 16, P.re0, 13, 9); px(g, 52, 16, P.re0, 13, 9);
-    px(g, 37, 17, P.re2, 11, 7); px(g, 53, 17, P.re2, 11, 7);
-    px(g, 40, 18, P.gd3, 5, 4); px(g, 56, 18, P.gd3, 5, 4);
-    px(g, 41, 19, P.white, 2, 2); px(g, 57, 19, P.white, 2, 2);
-    px(g, 34, 9, P.gn0, 15, 5); px(g, 51, 9, P.gn0, 15, 5);         // 眉
-    // 口と牙
-    px(g, 36, 38, P.out, 28, 4);
-    for (let i = 0; i < 8; i++) px(g, 37 + i * 3.4, 35, P.bn4, 3, 5);
-    px(g, 42, 42, P.re1, 14, 3);
-    // 前脚
-    px(g, 16, 68, P.gn2, 15, 20); px(g, 65, 68, P.gn2, 15, 20);
-    px(g, 16, 68, P.gn1, 6, 20); px(g, 74, 68, P.gn1, 6, 20);
-    px(g, 18, 62, P.gn3, 11, 8); px(g, 67, 62, P.gn3, 11, 8);
+    for (let i = 0; i < 10; i++) {                               // 背びれ
+      const t = i / 9, x = 48 + Math.round(Math.sin(t * 1.1) * 4);
+      tri(g, x + 8 - Math.round(t * 2), 52 - i * 4, 3, 6, P.bn2);
+    }
+
+    // 頭（中央上・やや前傾）
+    disc(g, 48, 16, 14, P.gn2);
+    disc(g, 43, 11, 8, P.gn3);
+    disc(g, 41, 9, 4, P.gn4);
+    ellipse(g, 50, 26, 15, 6, P.gn2);                            // 口吻
+    ellipse(g, 50, 28, 14, 3, P.gn1);
+    px(g, 44, 22, P.gn1, 3, 3); px(g, 55, 22, P.gn1, 3, 3);      // 鼻孔
+    tri(g, 35, -4, 5, 18, P.bn3); tri(g, 61, -4, 5, 18, P.bn3);  // 角
+    px(g, 34, 4, P.bn1, 3, 9); px(g, 60, 4, P.bn1, 3, 9);
+    tri(g, 29, 7, 4, 12, P.bn2); tri(g, 67, 7, 4, 12, P.bn2);
+    px(g, 38, 12, P.re0, 11, 8); px(g, 52, 12, P.re0, 11, 8);    // 目
+    px(g, 39, 13, P.re2, 9, 6); px(g, 53, 13, P.re2, 9, 6);
+    px(g, 41, 14, P.gd3, 4, 4); px(g, 55, 14, P.gd3, 4, 4);
+    px(g, 42, 15, P.white, 2, 2); px(g, 56, 15, P.white, 2, 2);
+    px(g, 36, 6, P.gn0, 13, 4); px(g, 51, 6, P.gn0, 13, 4);      // 眉
+    px(g, 38, 31, P.out, 26, 4);                                 // 口
+    for (let i = 0; i < 7; i++) px(g, 39 + i * 3.6, 28, P.bn4, 3, 5);
+    px(g, 44, 35, P.re1, 12, 3);
+
+    // 脚（胴の下から。左右に開かず体高を出す）
+    px(g, 27, 72, P.gn2, 14, 22); px(g, 55, 72, P.gn2, 14, 22);
+    px(g, 27, 72, P.gn1, 5, 22); px(g, 64, 72, P.gn1, 5, 22);
+    px(g, 29, 66, P.gn3, 10, 8); px(g, 56, 66, P.gn3, 10, 8);
     for (let i = 0; i < 3; i++) {
-      px(g, 14 + i * 6, 86, P.bn3, 5, 8); px(g, 64 + i * 6, 86, P.bn3, 5, 8);
-      px(g, 14 + i * 6, 86, P.bn4, 5, 3); px(g, 64 + i * 6, 86, P.bn4, 5, 3);
+      px(g, 25 + i * 6, 92, P.bn3, 5, 5); px(g, 53 + i * 6, 92, P.bn3, 5, 5);
+      px(g, 25 + i * 6, 92, P.bn4, 5, 2); px(g, 53 + i * 6, 92, P.bn4, 5, 2);
     }
-    // 尾
-    for (let i = 0; i < 24; i++) {
-      const w = Math.max(3, 15 - Math.round(i * 0.55));
-      const y = 80 - Math.round(Math.sin(i * 0.19) * 11);
-      px(g, 68 + i, y, P.gn2, 2, w);
-      px(g, 68 + i, y, P.gn3, 2, 3);
-      if (i % 4 === 0) px(g, 68 + i, y + w - 3, P.gn1, 2, 3);
+    // 尾（右後方へ長く伸ばす）
+    for (let i = 0; i < 28; i++) {
+      const w = Math.max(3, 15 - Math.round(i * 0.45));
+      const y = 76 - Math.round(Math.sin(i * 0.15) * 8);
+      px(g, 64 + i, y, P.gn2, 2, w);
+      px(g, 64 + i, y, P.gn3, 2, 3);
+      if (i % 4 === 0) px(g, 64 + i, y + w - 3, P.gn1, 2, 3);
     }
-    tri(g, 93, 62, 5, 11, P.bn3);
+    tri(g, 93, 54, 5, 13, P.bn3);
     outline(c, P.out);
     return c;
   }

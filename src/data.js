@@ -225,6 +225,17 @@
     },
   };
 
+  G.SHOPS.weapon2 = {
+    title: 'みなとの ぶきや',
+    lines: ['うみを わたってきた\nいい しなが あるぜ。'],
+    goods: [
+      { type: 'weapon', id: 3 },
+      { type: 'weapon', id: 4 },
+      { type: 'armor', id: 3 },
+      { type: 'armor', id: 4 },
+    ],
+  };
+
   G.INN_PRICE = 6;
 
   /* ---------------- 属性倍率 ---------------- */

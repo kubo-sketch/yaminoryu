@@ -355,6 +355,8 @@ console.log('\nゲーム画面:');
 renderMap('10_town.png', 'town', 11, 8);
 renderMap('11_town_shop.png', 'town', 6, 5);
 renderMap('12_field.png', 'field', 20, 20);
+renderMap('15_port.png', 'port', 11, 8);
+renderMap('16_port_shop.png', 'port', 5, 8);
 renderMap('13_field_river.png', 'field', 20, 14);
 renderMap('14_cave.png', 'cave1', 11, 5);
 
