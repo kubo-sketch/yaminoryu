@@ -348,5 +348,25 @@ console.log('\n=== 状態異常 ===');
   else ok('全員まひでも敵のターンへ進む');
 }
 
+/* ---- 仲間が進行に応じて何か言うか ---- */
+console.log('\n=== 仲間の挿話 ===');
+{
+  const spots = [['town', 13, 16, 'ユキ'], ['port', 14, 11, 'カイ'], ['pass', 19, 7, 'ナギ']];
+  spots.forEach(([map, x, y, who]) => {
+    const n = (G.MAPS[map].npcs || []).find((a) => a.x === x && a.y === y);
+    if (!n || typeof n.talk !== 'function') { fail(`${who} が見つからない`); return; }
+    // 加入済みとして、進行段階ごとに台詞が変わるか
+    G.party = [{ name: 'ユウ' }, { allyId: 'yuki' }, { allyId: 'kai' }, { allyId: 'nagi' }];
+    const seen = new Set();
+    [{}, { bossDead: 1 }, { bossDead: 1, shipReady: 1, elderDead: 1 },
+     { bossDead: 1, elderDead: 1, phantomDead: 1 }].forEach((f) => {
+      G.flags = Object.assign({ q: {}, read: {}, chests: {} }, f);
+      seen.add(JSON.stringify(n.talk()));
+    });
+    if (seen.size < 3) fail(`${who} の台詞が ${seen.size} 種しかない（進行で変わらない）`);
+    else ok(`${who}：進行で ${seen.size} 種に変わる`);
+  });
+}
+
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);

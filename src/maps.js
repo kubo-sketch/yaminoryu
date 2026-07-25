@@ -221,7 +221,19 @@
           x: 13, y: 16, spr: 'girl', dir: 0,
           talk: function () {
             const inParty = (G.party || []).some(function (m) { return m.allyId === 'yuki'; });
-            if (inParty) return ['わたしも いくよ。\nあしでまといには ならない。'];
+            if (inParty) {
+              if (G.flags.phantomDead)
+                return ['ねえさんが しりたかったことは\nぜんぶ わかった。',
+                        'でも わかっても\nねえさんは かえってこない。',
+                        'それでも しって よかった。\nありがとう。'];
+              if (G.flags.elderDead)
+                return ['たまごを みていると\nふしぎな きもちに なる。',
+                        'ねえさんが しろうとしたのは\nこういうものだったのかな。'];
+              if (G.flags.bossDead)
+                return ['りゅうは ほんとうは\nわるくなかったんだね。',
+                        'ねえさんは それを\nしっていたのかも しれない。'];
+              return ['わたしも いくよ。\nあしでまといには ならない。'];
+            }
             if (G.flags.q.missing >= 3) {
               const a = G.joinAlly('yuki');
               G.audio.se('levelup');
@@ -572,7 +584,15 @@
           x: 14, y: 11, spr: 'soldier', dir: 0,
           talk: function () {
             const inParty = (G.party || []).some(function (m) { return m.allyId === 'kai'; });
-            if (inParty) return ['うみの そこ、はやく みたいぜ。'];
+            if (inParty) {
+              if (G.flags.phantomDead)
+                return ['おやじの はなしは ほんとうだった。',
+                        'うみの そこに みやこが あって、\nそこから すべてが はじまった。',
+                        'いつか おやじの はかに\nはなしに いくよ。'];
+              if (G.flags.shipReady)
+                return ['ふねを だす じゅんびは できてる。\nいつでも いえよ。'];
+              return ['うみの そこ、はやく みたいぜ。'];
+            }
             if (G.flags.read.g3) {
               const a = G.joinAlly('kai');
               G.audio.se('levelup');
@@ -921,7 +941,16 @@
           x: 19, y: 7, spr: 'seer', dir: 1,
           talk: function () {
             const inParty = (G.party || []).some(function (m) { return m.allyId === 'nagi'; });
-            if (inParty) return ['みやこの うたを\nまだ おぼえている。\nそれだけが わたしの もちものだ。'];
+            if (inParty) {
+              if (G.flags.phantomDead)
+                return ['うたの さいごの ぶぶんを\nずっと いみが わからずに いた。',
+                        '「なまえを よべ」――',
+                        'ヴェルド。\nそういう ことだったのだな。'];
+              if (G.flags.elderDead)
+                return ['はじまりの りゅうが\nうたに でてくる りゅうだ。',
+                        'せんぞは あれを みて\nうたを つくったのだろう。'];
+              return ['みやこの うたを\nまだ おぼえている。\nそれだけが わたしの もちものだ。'];
+            }
             const R = G.flags.read || {};
             if (R.a1 && R.a2 && R.a3) {
               G.joinAlly('nagi');
