@@ -15,30 +15,39 @@
   'use strict';
   const G = (window.G = window.G || {});
 
-  /* ---------------- タイル属性 ---------------- */
-  //  walk: 通行可 / enc: エンカウント判定を行う / tile: 描画するタイル名
+  /* ---------------- タイル属性 ----------------
+     walk : 通行可 / enc: エンカウント判定を行う / tile: 描画するタイル名
+     auto : オートタイルのグループ名。隣接する同グループを見て縁を描き分ける
+     group: 自分はオートタイルではないが、この auto グループの一員として
+            扱ってほしいとき（例：階段は床の一部なので壁との境界を持たない） */
   G.TILEDEF = {
     '.': { tile: 'grass', walk: 1, enc: 1 },
-    '2': { tile: 'grass2', walk: 1, enc: 1 },
-    ',': { tile: 'road', walk: 1, enc: 1 },
+    '2': { tile: 'grass', walk: 1, enc: 1 },
+    ',': { tile: 'road', walk: 1, enc: 1, auto: 'road' },
     '*': { tile: 'flower', walk: 1, enc: 1 },
-    '~': { tile: 'water', walk: 0, anim: 1 },
+    '~': { tile: 'water', walk: 0, anim: 1, auto: 'water' },
     'B': { tile: 'bridge', walk: 1, enc: 1 },
     'T': { tile: 'tree', walk: 0 },
-    '^': { tile: 'mtn', walk: 0 },
-    '#': { tile: 'brick', walk: 0 },
+    '^': { tile: 'mtn', walk: 0, auto: 'mtn' },
+    '#': { tile: 'brick', walk: 0, auto: 'brick' },
     'R': { tile: 'roof', walk: 0 },
     'r': { tile: 'roofTop', walk: 0 },
-    'D': { tile: 'door', walk: 1 },
-    '=': { tile: 'floor', walk: 1 },
-    'C': { tile: 'counter', walk: 0 },
-    'H': { tile: 'throne', walk: 1 },
-    '%': { tile: 'cwall', walk: 0 },
-    '-': { tile: 'cfloor', walk: 1, enc: 1 },
-    '3': { tile: 'cfloor2', walk: 1, enc: 1 },
-    '<': { tile: 'up', walk: 1 },
-    '>': { tile: 'down', walk: 1 },
-    'O': { tile: 'centr', walk: 1 },
+    'D': { tile: 'door', walk: 1, group: 'brick' },
+    '=': { tile: 'floor', walk: 1, auto: 'floor' },
+    'C': { tile: 'counter', walk: 0, group: 'floor' },
+    'H': { tile: 'throne', walk: 1, group: 'floor' },
+    'c': { tile: 'carpet', walk: 1, group: 'floor' },
+    'b': { tile: 'barrel', walk: 0, group: 'floor' },
+    'p': { tile: 'pot', walk: 0, group: 'floor' },
+    't': { tile: 'torch', walk: 0, group: 'floor' },
+    'f': { tile: 'fence', walk: 0 },
+    'w': { tile: 'well', walk: 0 },
+    '%': { tile: 'cwall', walk: 0, auto: 'cwall' },
+    '-': { tile: 'cfloor', walk: 1, enc: 1, auto: 'cfloor' },
+    '3': { tile: 'cfloor', walk: 1, enc: 1, auto: 'cfloor' },
+    '<': { tile: 'up', walk: 1, group: 'cfloor' },
+    '>': { tile: 'down', walk: 1, group: 'cfloor' },
+    'O': { tile: 'centr', walk: 1, group: 'mtn' },
     'S': { tile: 'sign', walk: 0 },
     '$': { tile: 'chest', walk: 0 },
     'V': { tile: 'door', walk: 1 },
@@ -89,6 +98,15 @@
     for (let i = 0; i < list.length; i += 2) this.set(list[i], list[i + 1], ch);
     return this;
   };
+  // 楕円状のかたまりを置く。縁をランダムに欠けさせて四角さを消す
+  Grid.prototype.blob = function (cx, cy, rx, ry, ch, seed) {
+    let st = seed | 0;
+    const rnd = function () { st = (st * 1103515245 + 12345) & 0x7fffffff; return st / 0x7fffffff; };
+    for (let y = -ry; y <= ry; y++)
+      for (let x = -rx; x <= rx; x++)
+        if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1 - rnd() * 0.4) this.set(cx + x, cy + y, ch);
+    return this;
+  };
   Grid.prototype.rows = function () {
     return this.d.map(function (r) { return r.join(''); });
   };
@@ -109,7 +127,7 @@
   function buildTown() {
     const g = new Grid(24, 18, '.');
     g.frame(0, 0, 24, 18, 'T');                    // 外周は森で囲う
-    g.rect(9, 1, 6, 16, ',');                      // 縦の大通り
+    g.rect(10, 1, 4, 16, ',');                     // 縦の大通り（広すぎると単調になる）
     g.hline(1, 22, 8, ',');                        // 横の道
     g.scatter([1, 1, 2, 1, 1, 2, 21, 1, 22, 1, 22, 2, 1, 15, 2, 16, 21, 15, 22, 16, 2, 6, 21, 6], '*');
 
@@ -128,6 +146,16 @@
 
     g.set(11, 17, ','); g.set(12, 17, ',');        // 南の出口
     g.set(8, 9, 'S');                              // 看板
+
+    // 小物で密度を上げる（家具・樽・松明・柵・井戸）
+    g.set(7, 3, 'b'); g.set(4, 5, 'p');            // どうぐや
+    g.set(18, 3, 'b'); g.set(16, 5, 'c');          // やどや（絨毯）
+    g.set(7, 11, 'b'); g.set(7, 13, 'p');          // ぶきや
+    g.set(16, 13, 'c'); g.set(18, 13, 't');        // 村長の家
+    g.set(16, 11, 't');
+    g.set(20, 9, 'w');                             // 井戸
+    g.set(2, 12, 'f'); g.set(2, 13, 'f');          // 柵
+    g.set(21, 12, 'f'); g.set(21, 13, 'f');
 
     return {
       id: 'town', name: 'はじまりの村', rows: g.rows(),
@@ -182,22 +210,24 @@
     // 縦の街道
     g.vline(20, 2, 27, ',');
 
-    // 川（東西に横断）＋橋
-    g.hline(1, 38, 15, '~');
-    g.hline(1, 38, 16, '~');
-    g.set(20, 15, 'B'); g.set(20, 16, 'B');
+    // 川（東西に横断）。直線だと運河に見えるので緩やかに蛇行させる。
+    // 急に曲げると1マスずつ段差がついて「水たまりの列」になるので振幅は小さく。
+    const river = {};
+    for (let x = 1; x < 39; x++) {
+      const y = 15 + Math.round(Math.sin(x * 0.16) * 1.3);
+      for (let k = 0; k < 2; k++) { g.set(x, y + k, '~'); river[x + ',' + (y + k)] = 1; }
+      if ((x * 5) % 9 < 2) { g.set(x, y + 2, '~'); river[x + ',' + (y + 2)] = 1; }
+    }
 
-    // 森（塊で置く）
-    const woods = [
-      [4, 4, 5, 3], [30, 3, 6, 4], [2, 9, 4, 4], [33, 9, 5, 4],
-      [6, 19, 5, 3], [28, 19, 6, 4], [3, 24, 5, 3], [31, 24, 6, 3],
-      [13, 6, 3, 2], [24, 6, 3, 2], [13, 21, 3, 2], [24, 21, 3, 2],
-    ];
-    woods.forEach(function (w) { g.rect(w[0], w[1], w[2], w[3], 'T'); });
+    // 森（楕円のかたまり。矩形で置くと四角い森になる）
+    [[6, 5, 4, 2, 3], [32, 5, 4, 3, 11], [4, 10, 3, 3, 23], [35, 11, 3, 3, 31],
+     [8, 20, 4, 2, 41], [30, 21, 4, 3, 53], [5, 25, 3, 2, 61], [33, 25, 3, 2, 71],
+     [14, 7, 2, 2, 83], [25, 7, 2, 2, 97], [14, 22, 2, 2, 101], [26, 22, 2, 2, 103],
+    ].forEach(function (w) { g.blob(w[0], w[1], w[2], w[3], 'T', w[4]); });
 
     // 山（島状に置いて道を狭める）
-    const mtns = [[9, 5, 3, 2], [27, 11, 3, 2], [10, 12, 3, 2], [16, 3, 2, 2], [22, 3, 2, 2]];
-    mtns.forEach(function (m) { g.rect(m[0], m[1], m[2], m[3], '^'); });
+    [[10, 6, 3, 2, 7], [28, 12, 3, 2, 17], [11, 12, 2, 2, 29], [16, 4, 2, 1, 37],
+     [24, 4, 2, 1, 43]].forEach(function (m) { g.blob(m[0], m[1], m[2], m[3], '^', m[4]); });
 
     // 草の濃淡でメリハリ
     for (let i = 0; i < 90; i++) {
@@ -208,7 +238,9 @@
 
     // 街道を復元（森や山で潰れないように最後に引き直す）
     g.vline(20, 2, 27, ',');
-    g.set(20, 15, 'B'); g.set(20, 16, 'B');
+    // 街道が川と交わるところに橋を架ける。街道を引き直したあとに
+    // タイルを見ても既に ',' で潰れているので、川の座標を控えておいて使う。
+    for (let y = 2; y <= 27; y++) if (river['20,' + y]) g.set(20, y, 'B');
     g.hline(14, 26, 20, ',');                      // 東西の脇道
 
     // 洞窟の入口（北の山肌）

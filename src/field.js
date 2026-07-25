@@ -223,14 +223,48 @@
       G.msg.show(text);
     },
 
+    /* ---------------- オートタイル ----------------
+       上下左右に「同じグループ」があるかを4ビットに畳んで、
+       境界の描き分け済みタイルを選ぶ。画面外は同種とみなす
+       （マップの縁に不要な縁取りを出さないため）。            */
+    autoMask: function (mx, my, grp) {
+      const m = this.map;
+      const same = function (x, y) {
+        if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true;
+        const d = G.TILEDEF[m.rows[y][x]];
+        return !!d && (d.auto === grp || d.group === grp);
+      };
+      return (same(mx, my - 1) ? 1 : 0) | (same(mx + 1, my) ? 2 : 0)
+        | (same(mx, my + 1) ? 4 : 0) | (same(mx - 1, my) ? 8 : 0);
+    },
+
+    tileImage: function (mx, my, ch, def, wf) {
+      if (ch === '$') {
+        const ev = this.eventAt(mx, my);
+        return G.TILE[ev && G.flags.chests[ev.id] ? 'chestOpen' : 'chest'];
+      }
+      const t = G.TILE[def.tile];
+      if (!t) return null;
+      // 模様違いはマップ座標から決める（毎フレーム同じ絵になるように）
+      const vari = (mx * 7 + my * 13 + ((mx * my) & 7)) & 0xffff;
+      if (def.auto) {
+        const mask = this.autoMask(mx, my, def.auto);
+        const set = def.anim ? t[wf] : t[vari % t.length];
+        return set[mask];
+      }
+      if (Array.isArray(t)) return def.anim ? t[wf] : t[vari % t.length];
+      return t;
+    },
+
     /* ---------------- 描画 ---------------- */
     draw: function () {
-      const c = G.ctx, T = G.T, TS = G.TS, m = this.map;
+      const c = G.ctx, T = G.T, TS = G.TS, CH = G.CH, m = this.map;
       const cam = this.cam;
       const x0 = Math.floor(cam.x / T), y0 = Math.floor(cam.y / T);
       const ox = -(cam.x - x0 * T), oy = -(cam.y - y0 * T);
+      const lift = (CH - TS) * G.S;                 // キャラは上に伸びる分だけ持ち上げる
 
-      c.fillStyle = m.indoor ? '#12121c' : '#1b2a1a';
+      c.fillStyle = m.indoor ? '#0d0b14' : '#1b2a1a';
       c.fillRect(0, 0, G.W, G.H);
 
       const wf = Math.floor(G.time / 220) % 4;      // 水のアニメ
@@ -242,31 +276,35 @@
           const ch = m.rows[my][mx];
           const def = G.TILEDEF[ch];
           if (!def) continue;
-          let img;
-          if (def.anim) img = G.TILE[def.tile][wf];
-          else if (ch === '$') {
-            const ev = this.eventAt(mx, my);
-            img = G.TILE[ev && G.flags.chests[ev.id] ? 'chestOpen' : 'chest'];
-          } else img = G.TILE[def.tile];
+          const img = this.tileImage(mx, my, ch, def, wf);
           if (!img) continue;
           c.drawImage(img, 0, 0, TS, TS, (ox + i * T) | 0, (oy + j * T) | 0, T, T);
         }
       }
 
-      // NPC
-      const self = this;
+      // キャラは足元のY順に並べて描く（下にいる者が手前になる）
+      const p = G.player;
+      const actors = [];
       m.npcs.forEach(function (n) {
         const sx = n.x * T - cam.x, sy = n.y * T - cam.y;
-        if (sx < -T || sy < -T || sx > G.W || sy > G.H) return;
+        if (sx < -T * 2 || sy < -T * 2 || sx > G.W + T || sy > G.H + T) return;
         const set = G.SPR[n.spr];
-        if (!set) return;
-        c.drawImage(set[n.dir][0], 0, 0, TS, TS, sx | 0, sy | 0, T, T);
+        if (set) actors.push({ x: sx, y: sy, img: set[n.dir][0] });
       });
+      const psx = p.rx - cam.x, psy = p.ry - cam.y;   // 松明の中心にも使う
+      actors.push({ x: psx, y: psy, img: G.SPR.hero[p.dir][p.frame] });
+      actors.sort(function (a, b) { return a.y - b.y; });
 
-      // プレイヤー
-      const p = G.player;
-      const psx = p.rx - cam.x, psy = p.ry - cam.y;
-      c.drawImage(G.SPR.hero[p.dir][p.frame], 0, 0, TS, TS, psx | 0, psy | 0, T, T);
+      // 落ち影を先にまとめて敷く（キャラ同士で影が上書きし合わないように）
+      c.fillStyle = 'rgba(10,8,20,0.30)';
+      actors.forEach(function (a) {
+        c.beginPath();
+        c.ellipse(a.x + T / 2, a.y + T - 5, T * 0.30, T * 0.12, 0, 0, Math.PI * 2);
+        c.fill();
+      });
+      actors.forEach(function (a) {
+        c.drawImage(a.img, 0, 0, TS, CH, a.x | 0, (a.y - lift) | 0, T, CH * G.S);
+      });
 
       // 洞窟の暗さ（松明の届く範囲だけ見える）
       if (m.dark) {

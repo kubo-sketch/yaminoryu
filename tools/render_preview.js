@@ -232,12 +232,25 @@ console.log('出力先: ' + OUT);
 /* --- タイル --- */
 const tileNames = Object.keys(G.TILE);
 const tiles = [];
+const labels = [];
 tileNames.forEach((k) => {
-  const v = G.TILE[k];
-  if (Array.isArray(v)) tiles.push(v[0]); else tiles.push(v);
+  let v = G.TILE[k];
+  if (Array.isArray(v) && Array.isArray(v[0])) v = v[0];      // [variant|frame][mask]
+  if (Array.isArray(v)) {
+    if (v.length === 16) { tiles.push(v[15], v[0]); labels.push(k + '(連)', k + '(孤)'); }
+    else { tiles.push(v[0]); labels.push(k); }                 // 模様違いのみ
+  } else { tiles.push(v); labels.push(k); }
 });
 sheet('01_tiles.png', tiles, { scale: 5, cols: 8 });
-console.log('     ' + tileNames.join(' / '));
+console.log('     ' + labels.join(' / '));
+
+// オートタイルの全16パターン（境界の描き分けを確認する用）
+['road', 'water', 'cwall', 'cfloor', 'brick', 'floor'].forEach((k) => {
+  let v = G.TILE[k];
+  if (Array.isArray(v) && Array.isArray(v[0])) v = v[0];
+  if (!Array.isArray(v) || v.length !== 16) return;
+  sheet('05_auto_' + k + '.png', v, { scale: 5, cols: 8 });
+});
 
 /* --- キャラ（全方向・全コマ） --- */
 const charNames = Object.keys(G.SPR);
@@ -246,13 +259,13 @@ charNames.forEach((k) => {
   const set = G.SPR[k];
   for (let d = 0; d < 4; d++) for (let f = 0; f < 2; f++) chars.push(set[d][f]);
 });
-sheet('02_chars.png', chars, { scale: 5, cols: 8 });
+sheet('02_chars.png', chars, { scale: 5, cols: 8, cell: 24 });
 console.log('     ' + charNames.join(' / ') + '（各行=1キャラ／下左右上×2コマ）');
 
 /* --- 敵 --- */
 const enemyNames = Object.keys(G.ENEMY);
 sheet('03_enemies.png', enemyNames.map((k) => G.ENEMY[k]),
-  { scale: 4, cols: 3, cell: 64, bg: '#101a2e' });
+  { scale: 3, cols: 3, cell: 64, bg: '#101a2e' });
 console.log('     ' + enemyNames.join(' / '));
 
 /* =====================================================================
@@ -275,23 +288,50 @@ function renderMap(file, mapId, px, py, opt) {
 
   const x0 = Math.floor(camX / T), y0 = Math.floor(camY / T);
   const ox = -(camX - x0 * T), oy = -(camY - y0 * T);
+  const CH = G.CH, lift = (CH - TS) * o.scale;
+  const autoMask = (mx, my, grp) => {
+    const same = (x, y) => {
+      if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true;
+      const d = G.TILEDEF[m.rows[y][x]];
+      return !!d && (d.auto === grp || d.group === grp);
+    };
+    return (same(mx, my - 1) ? 1 : 0) | (same(mx + 1, my) ? 2 : 0)
+      | (same(mx, my + 1) ? 4 : 0) | (same(mx - 1, my) ? 8 : 0);
+  };
   for (let j = 0; j <= o.vh; j++) for (let i = 0; i <= o.vw; i++) {
     const mx = x0 + i, my = y0 + j;
     if (mx < 0 || my < 0 || mx >= m.w || my >= m.h) continue;
     const ch = m.rows[my][mx];
     const def = G.TILEDEF[ch];
     if (!def) continue;
-    const img = def.anim ? G.TILE[def.tile][0] : G.TILE[def.tile];
+    let img = G.TILE[def.tile];
     if (!img) continue;
+    const vari = (mx * 7 + my * 13 + ((mx * my) & 7)) & 0xffff;
+    if (def.auto) {
+      const mask = autoMask(mx, my, def.auto);
+      const set = def.anim ? img[0] : img[vari % img.length];
+      img = set[mask];
+    } else if (Array.isArray(img)) img = def.anim ? img[0] : img[vari % img.length];
     g.drawImage(img, 0, 0, TS, TS, Math.round(ox + i * T), Math.round(oy + j * T), T, T);
   }
+  const actors = [];
   (m.npcs || []).forEach((n) => {
     const sx = n.x * T - camX, sy = n.y * T - camY;
-    if (sx < -T || sy < -T || sx > cv.width || sy > cv.height) return;
-    g.drawImage(G.SPR[n.spr][n.dir][0], 0, 0, TS, TS, Math.round(sx), Math.round(sy), T, T);
+    if (sx < -T * 2 || sy < -T * 2 || sx > cv.width + T || sy > cv.height + T) return;
+    actors.push({ x: sx, y: sy, img: G.SPR[n.spr][n.dir][0] });
   });
-  g.drawImage(G.SPR.hero[0][0], 0, 0, TS, TS,
-    Math.round(px * T - camX), Math.round(py * T - camY), T, T);
+  actors.push({ x: px * T - camX, y: py * T - camY, img: G.SPR.hero[0][0] });
+  actors.sort((a, b) => a.y - b.y);
+  actors.forEach((a) => {                       // 落ち影（楕円を手で塗る）
+    const cx = a.x + T / 2, cy = a.y + T - 5, rx = T * 0.30, ry = T * 0.12;
+    for (let yy = -ry; yy <= ry; yy++)
+      for (let xx = -rx; xx <= rx; xx++)
+        if ((xx * xx) / (rx * rx) + (yy * yy) / (ry * ry) <= 1)
+          g.fillStyle = 'rgba(10,8,20,0.30)', g.fillRect(Math.round(cx + xx), Math.round(cy + yy), 1, 1);
+  });
+  actors.forEach((a) => {
+    g.drawImage(a.img, 0, 0, TS, CH, Math.round(a.x), Math.round(a.y - lift), T, CH * o.scale);
+  });
 
   const bytes = writePNG(path.join(OUT, file), cv);
   console.log('  ' + file + '  ' + cv.width + 'x' + cv.height + '  ' + (bytes / 1024).toFixed(1) + 'KB');
@@ -310,17 +350,48 @@ function renderBattle(file, enemyId, indoor) {
   const W = 720, H = 624, S = 3;
   const cv = new Cv(W, H);
   const g = cv.getContext('2d');
-  // 背景（battle.js と同じ配色。グラデーションは近似）
-  for (let y = 0; y < H; y++) {
-    const t = y / H;
+  // 背景（battle.js と同じ3層構成を近似）
+  const HZ = 396;
+  for (let y = 0; y < HZ; y++) {
+    const t = y / HZ;
     let r, gg, b;
-    if (indoor) { r = 26 - t * 16; gg = 23 - t * 13; b = 32 - t * 16; }
-    else { r = 16 - t * 10; gg = 26 - t * 18; b = 46 - t * 30; }
+    if (indoor) { r = 13 + t * 29; gg = 10 + t * 23; b = 18 + t * 30; }
+    else { r = 10 + t * 35; gg = 16 + t * 47; b = 36 + t * 71; }
     g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
     g.fillRect(0, y, W, 1);
   }
-  g.fillStyle = indoor ? '#2a2620' : '#1d2a1a';
-  g.fillRect(0, 396, W, H - 396);
+  const shape = (col, list) => { list.forEach(([bx, bw, bh]) => {
+    g.fillStyle = col;
+    for (let i = 0; i < bh; i++) {
+      const w = Math.round(bw * (i / bh));
+      g.fillRect(Math.round(bx + bw / 2 - w / 2), HZ - bh + i, w, 1);
+    }
+  }); };
+  if (indoor) {
+    g.fillStyle = '#181320';
+    for (let i = 0; i < 9; i++) {
+      const x = i * 88 + ((i * 37) % 40), w = 26 + ((i * 17) % 22), h = 60 + ((i * 53) % 90);
+      for (let j = 0; j < h; j++) {
+        const ww = Math.round(w * (1 - j / h));
+        g.fillRect(Math.round(x + w / 2 - ww / 2), j, ww, 1);
+      }
+    }
+    g.fillStyle = '#241d2c';
+    for (let i = 0; i < 6; i++) g.fillRect(i * 130 - 30, HZ - (90 + ((i * 47) % 70)), 170, 90 + ((i * 47) % 70));
+  } else {
+    for (let i = 0; i < 46; i++) { g.fillStyle = '#e8e4d2'; g.fillRect((i * 151) % W, (i * 73) % 240, 2, 2); }
+    shape('#111a33', [0,1,2,3,4,5].map(i => [i * 150 - 40, 240, 130 + ((i * 61) % 70)]));
+    shape('#0b1224', [0,1,2,3,4].map(i => [i * 190 - 90, 260, 80 + ((i * 43) % 50)]));
+  }
+  const gt = indoor ? G.TILE.cfloor[0][15] : G.TILE.grass[0];
+  for (let gy = HZ; gy < H; gy += 48)
+    for (let gx = 0; gx < W; gx += 48)
+      g.drawImage(gt, 0, 0, 16, 16, gx, gy, 48, 48);
+  for (let y = HZ; y < H; y++) {
+    const a = 0.72 - 0.32 * ((y - HZ) / (H - HZ));
+    g.fillStyle = `rgba(6,6,14,${a.toFixed(3)})`;
+    g.fillRect(0, y, W, 1);
+  }
   const img = G.ENEMY[d.spr];
   const sc = Math.min((d.scale || 2) * S, 296 / img.height);   // battle.js と同じ頭打ち
   const w = img.width * sc, h = img.height * sc;

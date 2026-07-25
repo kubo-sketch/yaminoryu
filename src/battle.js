@@ -355,18 +355,69 @@
     draw: function () {
       const c = G.ctx, e = this.enemy, d = this.def;
 
-      // 背景（洞窟なら暗い岩肌、屋外なら夜空）
+      // 背景。単色グラデだけだと「敵が浮いた黒い画面」になるので、
+      // 空 → 遠景のシルエット → 実タイルを敷いた地面、の3層で作る。
       const indoor = G.MAPS[G.player.map].indoor;
-      const g = c.createLinearGradient(0, 0, 0, G.H);
-      if (indoor) { g.addColorStop(0, '#1a1720'); g.addColorStop(1, '#0a0a10'); }
-      else { g.addColorStop(0, '#101a2e'); g.addColorStop(1, '#060810'); }
+      const HZ = 396;                                   // 地平線
+      const g = c.createLinearGradient(0, 0, 0, HZ);
+      if (indoor) { g.addColorStop(0, '#0d0a12'); g.addColorStop(0.6, '#1c1622'); g.addColorStop(1, '#2a2130'); }
+      else { g.addColorStop(0, '#0a1024'); g.addColorStop(0.55, '#16244a'); g.addColorStop(1, '#2d3f6b'); }
       c.fillStyle = g;
-      c.fillRect(0, 0, G.W, G.H);
-      // 地面
-      c.fillStyle = indoor ? '#2a2620' : '#1d2a1a';
-      c.fillRect(0, 396, G.W, G.H - 396);
-      c.fillStyle = 'rgba(255,255,255,0.05)';
-      c.fillRect(0, 396, G.W, 3);
+      c.fillRect(0, 0, G.W, HZ);
+
+      if (indoor) {
+        // 天井から垂れる鍾乳石
+        c.fillStyle = '#181320';
+        for (let i = 0; i < 9; i++) {
+          const x = i * 88 + ((i * 37) % 40), w = 26 + ((i * 17) % 22), h = 60 + ((i * 53) % 90);
+          c.beginPath();
+          c.moveTo(x, 0); c.lineTo(x + w / 2, h); c.lineTo(x + w, 0);
+          c.closePath(); c.fill();
+        }
+        // 奥の岩壁
+        c.fillStyle = '#241d2c';
+        for (let i = 0; i < 6; i++) {
+          const x = i * 130 - 30, w = 170, h = 90 + ((i * 47) % 70);
+          c.fillRect(x, HZ - h, w, h);
+        }
+      } else {
+        // 星
+        for (let i = 0; i < 46; i++) {
+          const x = (i * 151) % G.W, y = (i * 73) % 240;
+          c.globalAlpha = 0.25 + 0.5 * Math.abs(Math.sin(G.time / 1100 + i));
+          c.fillStyle = '#e8e4d2';
+          c.fillRect(x, y, 2, 2);
+        }
+        c.globalAlpha = 1;
+        // 遠景の山並み（2層で奥行きを出す）
+        c.fillStyle = '#111a33';
+        for (let i = 0; i < 6; i++) {
+          const bx = i * 150 - 40, bw = 240, bh = 130 + ((i * 61) % 70);
+          c.beginPath();
+          c.moveTo(bx, HZ); c.lineTo(bx + bw / 2, HZ - bh); c.lineTo(bx + bw, HZ);
+          c.closePath(); c.fill();
+        }
+        c.fillStyle = '#0b1224';
+        for (let i = 0; i < 5; i++) {
+          const bx = i * 190 - 90, bw = 260, bh = 80 + ((i * 43) % 50);
+          c.beginPath();
+          c.moveTo(bx, HZ); c.lineTo(bx + bw / 2, HZ - bh); c.lineTo(bx + bw, HZ);
+          c.closePath(); c.fill();
+        }
+      }
+
+      // 地面：実際のマップタイルを敷いて質感を出し、上から暗幕をかける
+      const gt = indoor ? G.TILE.cfloor[0][15] : G.TILE.grass[0];
+      for (let gy = HZ; gy < G.H; gy += G.T)
+        for (let gx = 0; gx < G.W; gx += G.T)
+          c.drawImage(gt, 0, 0, G.TS, G.TS, gx, gy, G.T, G.T);
+      const gg = c.createLinearGradient(0, HZ, 0, G.H);
+      gg.addColorStop(0, 'rgba(6,6,14,0.72)');
+      gg.addColorStop(1, 'rgba(6,6,14,0.40)');
+      c.fillStyle = gg;
+      c.fillRect(0, HZ, G.W, G.H - HZ);
+      c.fillStyle = 'rgba(232,228,210,0.10)';
+      c.fillRect(0, HZ, G.W, 2);
 
       // 敵。地面(y=400)から上へ伸ばすので、敵名ウィンドウ(〜94px)に
       // かからない高さで頭打ちにする。これが無いと大きい敵の頭が切れる。

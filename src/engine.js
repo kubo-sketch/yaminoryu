@@ -91,17 +91,31 @@
   /* =====================================================================
      ウィンドウとテキスト
      ===================================================================== */
-  // ドラクエ風の黒地＋白枠
+  // ウィンドウ。単色の黒地＋白枠だと8bit期の見え方になるので、
+  // 濃紺のグラデーション＋白の外枠＋金の内罫＋四隅の飾りで質感を出す。
   G.win = function (x, y, w, h) {
     const c = G.ctx;
-    c.fillStyle = 'rgba(6,8,16,0.94)';
+    const g = c.createLinearGradient(0, y, 0, y + h);
+    g.addColorStop(0, 'rgba(26,32,58,0.96)');
+    g.addColorStop(0.5, 'rgba(14,18,36,0.96)');
+    g.addColorStop(1, 'rgba(8,10,20,0.97)');
+    c.fillStyle = g;
     c.fillRect(x, y, w, h);
-    c.strokeStyle = '#f2f0e5';
+    // 上端のハイライト（面に厚みを出す）
+    c.fillStyle = 'rgba(120,140,190,0.20)';
+    c.fillRect(x + 3, y + 3, w - 6, 2);
+    // 外枠（白）
+    c.strokeStyle = '#e8e4d2';
     c.lineWidth = 3;
     c.strokeRect(x + 2.5, y + 2.5, w - 5, h - 5);
-    c.strokeStyle = 'rgba(0,0,0,0.9)';
-    c.lineWidth = 2;
-    c.strokeRect(x + 6, y + 6, w - 12, h - 12);
+    // 内罫（金）
+    c.strokeStyle = 'rgba(208,168,58,0.5)';
+    c.lineWidth = 1;
+    c.strokeRect(x + 7.5, y + 7.5, w - 15, h - 15);
+    // 四隅の飾り
+    c.fillStyle = '#e8c85c';
+    [[x + 4, y + 4], [x + w - 9, y + 4], [x + 4, y + h - 9], [x + w - 9, y + h - 9]]
+      .forEach(function (p) { c.fillRect(p[0], p[1], 5, 5); });
   };
 
   G.text = function (s, x, y, opt) {

@@ -199,7 +199,7 @@
     c.fillRect(0, 466, G.W, G.H - 466);
     // 主人公の後ろ姿
     const img = G.SPR.hero[3][0];
-    c.drawImage(img, 0, 0, 16, 16, (G.W / 2 - 48) | 0, 380, 96, 96);
+    c.drawImage(img, 0, 0, 16, G.CH, (G.W / 2 - 48) | 0, 332, 96, 144);
     if (G.msg.active) G.msg.draw();
   };
 
@@ -258,7 +258,7 @@
       G.text('— はじまりの村と ほらあなの ぬし —', G.W / 2, 178, { size: 19, align: 'center', color: '#b8a06a' });
 
       // 主人公
-      c.drawImage(G.SPR.hero[0][Math.floor(G.time / 400) % 2], 0, 0, 16, 16, G.W / 2 - 36, 300, 72, 72);
+      c.drawImage(G.SPR.hero[0][Math.floor(G.time / 400) % 2], 0, 0, 16, G.CH, G.W / 2 - 36, 264, 72, 108);
 
       // メニュー
       const list = this.items();
