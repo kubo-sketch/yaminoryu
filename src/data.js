@@ -132,6 +132,13 @@
       scale: 0.72, flee: true, max: 3,
       weak: 'ice',                                   // 水っぽいので氷に弱い
     },
+    // 毒を持つ敵。解毒薬に存在意義を与える
+    spider: {
+      name: 'どくぐも', spr: 'spider', hp: 20, atk: 13, def: 8, exp: 11, gold: 15,
+      scale: 0.86, flee: true, max: 3, agi: 1.15,
+      weak: 'fire', resist: 'ice',
+      poison: 0.35,                                  // 攻撃が当たると35%で毒
+    },
     bat: {
       name: 'おおコウモリ', spr: 'bat', hp: 11, atk: 9, def: 4, exp: 4, gold: 7,
       scale: 0.80, flee: true, agi: 1.3, max: 3,
@@ -207,8 +214,8 @@
   /* ---------------- 出現テーブル ---------------- */
   G.ENC = {
     field_near: { rate: 0.055, table: ['slime', 'slime', 'slime', 'bat', 'bat', 'goblin'] },
-    field_far: { rate: 0.07, table: ['slime', 'bat', 'bat', 'goblin', 'goblin', 'skeleton'] },
-    cave1: { rate: 0.085, table: ['bat', 'goblin', 'goblin', 'skeleton', 'skeleton', 'mage'] },
+    field_far: { rate: 0.07, table: ['slime', 'bat', 'spider', 'goblin', 'goblin', 'skeleton'] },
+    cave1: { rate: 0.085, table: ['bat', 'spider', 'goblin', 'skeleton', 'skeleton', 'mage'] },
     cave2: { rate: 0.10, table: ['goblin', 'skeleton', 'skeleton', 'mage', 'mage'] },
     tower1: { rate: 0.085, table: ['serpent', 'serpent', 'skeleton', 'statue', 'mage'] },
     tower2: { rate: 0.10, table: ['serpent', 'statue', 'statue', 'mage'] },
@@ -261,6 +268,15 @@
       { type: 'armor', id: 3 },
       { type: 'armor', id: 4 },
     ],
+  };
+
+  /* ---------------- 状態異常「どく」 ----------------
+     戦闘中は毎ターン、フィールドでは数歩ごとにHPが減る。
+     フィールドでは死なない（HP1で止まる）＝理不尽な即死を作らない。 */
+  G.POISON = {
+    battleDamage: function (maxhp) { return Math.max(2, Math.floor(maxhp * 0.06)); },
+    stepInterval: 6,                                 // この歩数ごとに1回
+    stepDamage: function (maxhp) { return Math.max(1, Math.floor(maxhp * 0.02)); },
   };
 
   G.INN_PRICE = 6;

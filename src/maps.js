@@ -42,6 +42,10 @@
     't': { tile: 'torch', walk: 0, group: 'floor' },
     'f': { tile: 'fence', walk: 0 },
     'w': { tile: 'well', walk: 0 },
+    'v': { tile: 'fireplace', walk: 0, group: 'brick' },
+    'g': { tile: 'forge', walk: 0, group: 'floor' },
+    'q': { tile: 'bookwall', walk: 0, group: 'brick' },
+    'z': { tile: 'altar', walk: 0, group: 'floor' },
     'e': { tile: 'bed', walk: 0, group: 'floor' },
     'a': { tile: 'table', walk: 0, group: 'floor' },
     'h': { tile: 'shelf', walk: 0, group: 'floor' },
@@ -56,6 +60,8 @@
     'u': { tile: 'puddle', walk: 1, enc: 1, group: 'cfloor' },
     'j': { tile: 'bones', walk: 1, enc: 1, group: 'cfloor' },
     '%': { tile: 'cwall', walk: 0, auto: 'cwall' },
+    // 見た目は洞窟の壁だが通り抜けられる。ヒントを聞いてから来る隠し通路
+    '@': { tile: 'cwall', walk: 1, auto: 'cwall' },
     '-': { tile: 'cfloor', walk: 1, enc: 1, auto: 'cfloor' },
     '3': { tile: 'cfloor', walk: 1, enc: 1, auto: 'cfloor' },
     '<': { tile: 'up', walk: 1, group: 'cfloor' },
@@ -171,9 +177,10 @@
 
     // 家具は壁際へ。店主の行(y=4/21)には置かず、回り込む道を残す
     g.set(6, 5, 'h'); g.set(9, 5, 'k'); g.set(9, 7, 'p'); g.set(5, 7, 'b');    // どうぐや
+    g.set(5, 4, 'v');                              // 暖炉
     g.set(23, 5, 'e'); g.set(26, 5, 'e'); g.set(22, 7, 'a'); g.set(26, 7, 'h'); // やどや
-    g.set(5, 19, 'b'); g.set(9, 19, 'k'); g.set(9, 21, 'p'); g.set(5, 21, 'k'); // ぶきや
-    g.set(22, 18, 't'); g.set(26, 18, 't'); g.set(22, 21, 'h');                 // 村長の家
+    g.set(5, 19, 'b'); g.set(9, 19, 'k'); g.set(9, 21, 'p'); g.set(5, 21, 'g'); // ぶきや（鍛冶場）
+    g.set(22, 18, 't'); g.set(26, 18, 't'); g.set(22, 21, 'q');                 // 村長の家（書棚の壁）
     g.set(23, 21, 'c'); g.set(24, 21, 'c'); g.set(25, 21, 'c');
 
     // 広場まわり
@@ -210,12 +217,19 @@
         },
         {
           x: 13, y: 11, spr: 'girl', dir: 0,
-          talk: ['ふんすいの みずは つめたくて\nきもちいいの！', 'おにいちゃん\nむりしちゃ だめだよ。'],
+          talk: function () {
+            if (G.flags.bossDead) return ['おにいちゃん りゅうを たおしたの！？', 'すごい！ すごい！\nみんなに じまん しちゃおう！'];
+            return ['ふんすいの みずは つめたくて\nきもちいいの！', 'おにいちゃん\nむりしちゃ だめだよ。'];
+          },
         },
         {
           x: 18, y: 14, spr: 'sage', dir: 0,
-          talk: ['てきが つよいと おもったら\n「ぼうぎょ」だ。うけるダメージが\nはんぶんに なる。',
-                 'MPも すこし もどる。\nじゅもんの ためが きくのだ。'],
+          talk: function () {
+            if (G.flags.bossDead) return ['まものの けはいが うすくなった。',
+                    'つちの ちからが もどってきておる。\nりゅうが しずめていたものが\nまた しずまりはじめたのだ。'];
+            return ['てきが つよいと おもったら\n「ぼうぎょ」だ。うけるダメージが\nはんぶんに なる。',
+                    'MPも すこし もどる。\nじゅもんの ためが きくのだ。'];
+          },
         },
         {
           x: 17, y: 23, spr: 'soldier', dir: 0,
@@ -229,21 +243,40 @@
         },
         {
           x: 28, y: 8, spr: 'villager', dir: 0,
-          talk: ['やどやは HPも MPも\nぜんぶ なおしてくれる。', '6ゴールドは やすいもんだ。'],
+          talk: function () {
+            if (G.flags.bossDead) return ['きょうは やどが まんいんでな。',
+                    'となりまちから ひとが\nもどってきておるのだ。\nみな にげていたからな。'];
+            return ['やどやは HPも MPも\nぜんぶ なおしてくれる。', '6ゴールドは やすいもんだ。'];
+          },
         },
         {
           x: 10, y: 13, spr: 'villager', dir: 0,
-          talk: ['スライムは こおりに よわい。\nがいこつは ほのおに よわい。',
-                 'まどうしは いかずちだ。\nおぼえておいて そんは ない。'],
+          talk: function () {
+            if (G.flags.bossDead) return ['あんたの はなしは もう\nみなとまちまで とどいてるよ。',
+                    'ちいさな むらの わかものが\nりゅうを たおしたってな。'];
+            return ['スライムは こおりに よわい。\nがいこつは ほのおに よわい。',
+                    'まどうしは いかずちだ。\nおぼえておいて そんは ない。'];
+          },
         },
         {
           x: 22, y: 12, spr: 'girl', dir: 0,
-          talk: ['まものが 2ひき 3びきと\nいちどに おそってくるって……',
-                 'ぜんたいこうげきの じゅもんが\nあれば いいのにね。'],
+          talk: function () {
+            if (G.flags.bossDead) return ['もう そとに でても だいじょうぶ？',
+                    'おかあさんが はたけに\nもどれるって いってた。'];
+            return ['まものが 2ひき 3びきと\nいちどに おそってくるって……',
+                    'ぜんたいこうげきの じゅもんが\nあれば いいのにね。'];
+          },
         },
         {
           x: 8, y: 15, spr: 'villager', dir: 3,
           talk: function () {
+            if (G.flags.bossDead && G.flags.q.missing >= 3)
+              return ['りゅうは たおれた。\nあの子は もどらない。',
+                      'それでも……ありがとう。\nかたみを つれて かえってくれて。',
+                      'あんたが ぶじで よかった。'];
+            if (G.flags.bossDead)
+              return ['りゅうは たおれたと きいた。',
+                      'でも あの子は まだ\nかえってこない……'];
             if (G.flags.q.missing >= 3)
               return ['あんたが つれて かえってくれた\nかたみを、はかに おさめたよ。',
                       'あの子たちも これで\nやっと ねむれる。'];
@@ -465,6 +498,15 @@
         {
           x: 20, y: 15, spr: 'king', dir: 0,
           talk: function () {
+            if (G.flags.galenDead)
+              return ['とうだいの ぬしも たおれたか。',
+                      'あの おとこは うみを わたって きた。',
+                      'ということは――\nあれを おくりだした がわが\nどこかに あるということだ。',
+                      'うみの むこうは\nまだ なにも わかっておらん。'];
+            if (G.flags.bossDead)
+              return ['りゅうが たおれたと きいた。',
+                      'だが わしは まだ ねむれん。',
+                      'とうだいの きろくに あった\n「にの わ」――\nあれは どこへ いった。'];
             if (G.flags.read.g3)
               return ['とうだいの きろくを みたか。',
                       'ガレンは 30ねんまえに ながれてきた\nがくしゃだ。うみを わたって な。',
@@ -494,6 +536,12 @@
           x: 13, y: 15, spr: 'villager', dir: 0,
           talk: ['ほらあなの おくで\nおおきな がいこつを みた……',
                  'あれは ほのおに よわいはずだ。'],
+        },
+        {
+          x: 9, y: 13, spr: 'smith', dir: 0,
+          talk: ['ほらあなの ひがしの ゆきどまり――',
+                 'あそこの かべは にせものだ。\nおれは すりぬけた ことが ある。',
+                 'おくに なにか おいてあったが\nこわくて とらずに もどったよ。'],
         },
         {
           x: 4, y: 8, spr: 'priest', dir: 0,
@@ -533,7 +581,13 @@
       if (g.d[y][x] === '-') g.set(x, y, '3');
     }
     g.set(12, 1, '<'); g.set(7, 17, '>'); g.set(11, 12, '$'); g.set(21, 11, '$');
+    g.set(24, 15, '$');
     g.set(5, 5, 'j'); g.set(20, 8, 'j'); g.set(15, 16, 'j');   // 手がかりの目印
+    // 隠し部屋（東の縦通路の南端。壁1枚だけが偽物になっている）
+    g.corridor(20, 12, 20, 15, '-', 2);            // 本線を南へ延長（宝箱のある y=11 は避ける）
+    g.rect(23, 14, 2, 3, '-');                     // 部屋
+    g.set(22, 15, '@');                            // 見た目は壁・通り抜けられる
+    g.set(24, 15, '$');
 
     return {
       id: 'cave1', name: 'やみのほらあな １かい', rows: g.rows(),
@@ -553,6 +607,7 @@
         },
         { x: 11, y: 12, type: 'chest', id: 'c1', weapon: 3 },
         { x: 21, y: 11, type: 'chest', id: 'c3', item: 'seisui', n: 2 },
+        { x: 24, y: 15, type: 'chest', id: 'c5', gold: 320 },
         {
           x: 5, y: 5, type: 'pickup', needQuest: 'missing', setQuest: 'missing', setValue: 2,
           locked: 'つちに なにかが うまっている。\nいまは かかわらないでおこう。',
@@ -674,7 +729,7 @@
     g.rect(2, 2, 10, 8, '=');
     g.set(7, 10, '>');                             // 下階へ
     g.set(7, 1, 'D');                              // 奥へ（竜を倒すまで開かない）
-    g.set(3, 3, 'h'); g.set(10, 3, 'h');           // 書棚
+    g.set(3, 3, 'q'); g.set(10, 3, 'q');           // 書棚の壁
     g.set(2, 6, 'a'); g.set(11, 6, 'a');           // 机
     g.set(3, 8, 't'); g.set(10, 8, 't');           // 松明
     g.set(5, 3, '$'); g.set(8, 3, '$');
@@ -724,7 +779,7 @@
     g.set(6, 10, 'D');                             // 最上階へ戻る
     g.set(2, 2, 't'); g.set(10, 2, 't');
     g.set(2, 9, 't'); g.set(10, 9, 't');
-    g.set(3, 3, 'h'); g.set(9, 3, 'h');
+    g.set(3, 3, 'q'); g.set(9, 3, 'q');
     g.set(5, 8, 'c'); g.set(6, 8, 'c'); g.set(7, 8, 'c');
     return {
       id: 'tower3', name: 'とうだいの おくのま', rows: g.rows(),

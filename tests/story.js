@@ -43,7 +43,7 @@ function tryPickup() {
   return 'got';
 }
 // 墓守 NPC の talk をそのまま呼ぶ
-const keeper = G.MAPS.town.npcs.find((n) => n.spr === 'sage' && typeof n.talk === 'function');
+const keeper = G.MAPS.town.npcs.find((n) => n.x === 3 && n.y === 11);   // 墓守（座標で特定）
 if (!keeper) fail('町に墓守(依頼人)がいない');
 const talk = () => keeper.talk();
 
@@ -145,6 +145,64 @@ const b2 = JSON.stringify(capt.talk());
 G.flags.read.g3 = 1;
 if (b2 === JSON.stringify(capt.talk())) fail('研究日誌を読んでも船長の話が変わらない');
 else ok('船長：研究日誌を読むと話が変わる');
+
+/* ---- 竜討伐後、町の空気が変わるか ---- */
+console.log('\n=== 後日談（竜を倒したあと）===');
+{
+  let changed = 0, fixed = 0;
+  ['town', 'port'].forEach((id) => {
+    (G.MAPS[id].npcs || []).forEach((n) => {
+      if (typeof n.talk !== 'function') { fixed++; return; }
+      G.flags = { q: { missing: 0 }, read: {}, bossDead: 0, galenDead: 0, chests: {} };
+      const a = JSON.stringify(n.talk());
+      G.flags.bossDead = 1;
+      const b = JSON.stringify(n.talk());
+      if (a !== b) changed++;
+    });
+  });
+  const total = (G.MAPS.town.npcs || []).length + (G.MAPS.port.npcs || []).length;
+  console.log(`  会話が変わるNPC ${changed} / ${total}（うち固定文のまま ${fixed}）`);
+  if (changed < 6) fail('竜を倒しても町の空気がほとんど変わらない');
+  else ok('討伐後に町の会話が変わる');
+}
+
+/* ---- 毒が機能しているか ---- */
+console.log('\n=== 状態異常「どく」===');
+{
+  const poisoners = Object.keys(G.ENEMIES).filter((k) => G.ENEMIES[k].poison);
+  if (!poisoners.length) fail('毒を与える敵がいない（解毒薬が無意味になる）');
+  else ok('毒を持つ敵: ' + poisoners.map((k) => G.ENEMIES[k].name).join('・'));
+  if (!G.POISON) fail('毒の効果量が定義されていない');
+  else {
+    const bd = G.POISON.battleDamage(100), sd = G.POISON.stepDamage(100);
+    if (bd <= 0 || sd <= 0) fail('毒のダメージが0');
+    else ok(`最大HP100のとき 戦闘${bd}/ターン・歩行${sd}/${G.POISON.stepInterval}歩`);
+  }
+  const cure = G.ITEMS.dokukesi;
+  if (!cure) fail('解毒手段が無い');
+  else ok('どくけしそう ' + cure.price + 'G で購入可');
+  // 毒を出す敵が、実際に出現テーブルに載っているか
+  const inTable = Object.keys(G.ENC).some((k) => G.ENC[k].table.some((e) => G.ENEMIES[e].poison));
+  if (!inTable) fail('毒を持つ敵がどのエンカウント表にも載っていない');
+  else ok('毒を持つ敵が出現テーブルに載っている');
+}
+
+/* ---- 隠し部屋 ---- */
+console.log('\n=== 隠し部屋 ===');
+{
+  const m = G.MAPS.cave1;
+  let secret = 0;
+  m.rows.forEach((r) => { for (const ch of r) if (ch === '@') secret++; });
+  if (!secret) fail('隠し通路タイルが無い');
+  else ok(`隠し通路 ${secret} マス（見た目は壁・通行可）`);
+  // ヒントを言うNPCがいるか
+  const hint = ['town', 'port'].some((id) => (G.MAPS[id].npcs || []).some((n) => {
+    const t = typeof n.talk === 'function' ? n.talk() : n.talk;
+    return t && JSON.stringify(t).indexOf('にせもの') >= 0;
+  }));
+  if (!hint) fail('隠し通路のヒントを言うNPCがいない（発見不可能）');
+  else ok('ヒントを言うNPCがいる');
+}
 
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);

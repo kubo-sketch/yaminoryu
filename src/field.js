@@ -99,6 +99,12 @@
           p.steps++;
           if (p.holy > 0) p.holy--;
           if (this.grace > 0) this.grace--;
+          // 毒はフィールドでも進行する。ただしHP1で止まり、歩いていて死ぬことはない
+          if (p.poison && p.steps % G.POISON.stepInterval === 0 && p.hp > 1) {
+            p.hp = Math.max(1, p.hp - G.POISON.stepDamage(p.maxhp));
+            G.audio.se('damage');
+            G.fx.flash('#8fd07f', 160);
+          }
           this.updateCam();
           if (this.onStep()) return;             // 踏んだ瞬間のイベント/戦闘
         }
@@ -418,6 +424,7 @@
     G.text(p.mp + '/' + p.maxmp, 190, 80, { size: 21, align: 'right' });
     G.text('G', 30, 106, { size: 19, color: '#b8c4d4' });
     G.text(String(p.gold), 190, 106, { size: 21, align: 'right', color: '#e8c34a' });
+    if (p.poison) G.text('どく', 30, 128, { size: 17, color: '#8fd07f' });
   };
 
   /* =====================================================================

@@ -774,6 +774,71 @@
     return c;
   }
 
+  /* ---- 屋内の壁面設備（部屋に用途を持たせる） ---- */
+  function tFireplace() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.st2, 16, 16);
+    for (let y = 0; y < 16; y += 4) { px(g, 0, y, P.st3, 16, 1); px(g, 0, y + 3, P.st1, 16, 1); }
+    px(g, 2, 4, P.st0, 12, 12);                    // 炉の口
+    px(g, 3, 6, '#1a0f08', 10, 10);
+    px(g, 1, 2, P.st1, 14, 3); px(g, 1, 2, P.st4, 14, 1);   // まぐさ石
+    // 炎
+    disc(g, 8, 13, 4, P.re1);
+    disc(g, 8, 13, 3, P.re3);
+    disc(g, 8, 12, 2, P.gd2);
+    px(g, 7, 9, P.gd3, 2, 3); px(g, 6, 11, P.gd4, 1, 2); px(g, 10, 11, P.gd4, 1, 2);
+    px(g, 4, 15, P.wd0, 8, 1);                     // 薪
+    px(g, 5, 14, P.wd1, 6, 1);
+    return c;
+  }
+  function tForge() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 2, 14, P.shadow, 12, 2);
+    px(g, 3, 8, P.st0, 10, 7);                     // 金床の台
+    px(g, 4, 9, P.st2, 8, 5);
+    px(g, 1, 4, P.st1, 14, 5);                     // 金床
+    px(g, 1, 4, P.st3, 14, 2);
+    px(g, 1, 8, P.st0, 14, 1);
+    px(g, 12, 3, P.st1, 4, 2);                     // 角
+    px(g, 5, 2, P.wd1, 2, 3); px(g, 4, 0, P.st2, 5, 3);     // ハンマー
+    px(g, 4, 0, P.st4, 5, 1);
+    px(g, 9, 5, P.re2, 3, 2); px(g, 9, 5, P.gd3, 3, 1);     // 熱した鉄
+    px(g, 10, 3, P.gd4, 1, 2);
+    return c;
+  }
+  function tBookwall() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    px(g, 0, 0, P.wd0, 16, 16);
+    for (let r = 0; r < 4; r++) {
+      const y = r * 4;
+      px(g, 0, y + 3, P.wd2, 16, 1);
+      const cols = [P.re2, P.bl2, P.gn2, P.gd2, P.pp3, P.bn2];
+      for (let i = 0; i < 8; i++) {
+        const h = 3 - ((i + r) % 2);
+        px(g, i * 2, y + (3 - h), cols[(i * 3 + r * 2) % 6], 2, h);
+        px(g, i * 2, y + (3 - h), P.white, 1, 1);
+      }
+    }
+    px(g, 0, 0, P.wd1, 16, 1);
+    return c;
+  }
+  function tAltar() {
+    const c = mk(16, 16), g = c.getContext('2d');
+    bgFloor(g);
+    px(g, 2, 13, P.shadow, 12, 3);
+    px(g, 2, 6, P.st1, 12, 9);
+    px(g, 2, 6, P.st3, 12, 2);
+    px(g, 2, 14, P.st0, 12, 1);
+    px(g, 4, 2, P.bn3, 8, 5);                      // 供物の布
+    px(g, 4, 2, P.bn4, 8, 2);
+    px(g, 7, 0, P.gd2, 2, 6); px(g, 5, 2, P.gd2, 6, 2);     // 十字
+    px(g, 7, 0, P.gd4, 1, 6);
+    px(g, 3, 8, P.re2, 2, 2); px(g, 11, 8, P.re2, 2, 2);    // 灯
+    px(g, 3, 8, P.gd4, 2, 1); px(g, 11, 8, P.gd4, 2, 1);
+    return c;
+  }
+
   /* =====================================================================
      キャラクター（16x24／4方向 × 2コマ）
      ---------------------------------------------------------------------
@@ -1353,6 +1418,44 @@
     return c;
   }
 
+  function eSpider() {
+    const c = mk(96, 96), g = c.getContext('2d');
+    // 8本脚を左右に張り出す。低く横に広いシルエット＝虫
+    for (let i = 0; i < 4; i++) {
+      const y0 = 44 + i * 6;
+      const spread = 34 - Math.abs(i - 1.5) * 6;
+      for (let k = 0; k <= 16; k++) {
+        const q = k / 16;
+        const bend = Math.sin(q * Math.PI) * 12;
+        px(g, Math.round(38 - spread * q), Math.round(y0 - bend), P.pp1, 3, 3);
+        px(g, Math.round(58 + spread * q), Math.round(y0 - bend), P.pp1, 3, 3);
+      }
+      px(g, Math.round(38 - spread), y0 - 2, P.out, 4, 6);
+      px(g, Math.round(58 + spread), y0 - 2, P.out, 4, 6);
+    }
+    ellipse(g, 48, 62, 21, 18, P.pp2);               // 腹
+    ellipse(g, 44, 57, 14, 12, P.pp3);
+    // 毒々しい斑紋
+    for (let i = 0; i < 3; i++) {
+      dome(g, 48, 56 + i * 8, 9 - i * 2, 5, P.gd2);
+      dome(g, 48, 55 + i * 8, 7 - i * 2, 4, P.gn4);
+    }
+    ellipse(g, 48, 38, 15, 12, P.pp2);               // 頭胸部
+    ellipse(g, 45, 34, 10, 8, P.pp3);
+    // 目（8つ）
+    for (let i = 0; i < 4; i++) {
+      px(g, 38 + i * 5, 32, P.re2, 4, 4);
+      px(g, 39 + i * 5, 33, P.gd4, 2, 2);
+    }
+    px(g, 40, 39, P.re1, 3, 3); px(g, 53, 39, P.re1, 3, 3);
+    // 牙
+    px(g, 42, 46, P.bn3, 4, 8); px(g, 50, 46, P.bn3, 4, 8);
+    px(g, 42, 52, P.gn4, 4, 4); px(g, 50, 52, P.gn4, 4, 4);
+    px(g, 46, 45, P.out, 4, 5);
+    outline(c, P.out);
+    return c;
+  }
+
   /* ---- ガレン（黒幕・人型のラスボス） ----
      まどうしと差別化する：あちらは顔が影で匿名的、こちらは素顔の老人。
      人間が黒幕であることを一目で伝える。浮遊する「二の輪」を目印にする。 */
@@ -1443,6 +1546,7 @@
       bed: tBed(), table: tTable(), shelf: tShelf(), fountain: tFountain(),
       bench: tBench(), cart: tCart(), flowerbed: tFlowerbed(), stone: tStone(),
       grave: tGrave(), crate: tCrate(),
+      fireplace: tFireplace(), forge: tForge(), bookwall: tBookwall(), altar: tAltar(),
       stalag: tStalag(), puddle: tPuddle(), bones: tBones(),
     };
 
@@ -1463,7 +1567,7 @@
     G.ENEMY = {
       slime: eSlime(), bat: eBat(), goblin: eGoblin(),
       skeleton: eSkeleton(), mage: eMage(), boss: eBoss(),
-      serpent: eSerpent(), statue: eStatue(), galen: eGalen(),
+      serpent: eSerpent(), statue: eStatue(), galen: eGalen(), spider: eSpider(),
     };
   };
 })();

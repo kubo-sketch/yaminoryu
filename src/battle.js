@@ -106,6 +106,21 @@
       if (this.queue.length) { this.queue.shift()(); return; }
       if (!this.living().length) { this.doWin(); return; }
       if (G.player.hp <= 0) { this.doLose(); return; }
+      // 毒は1ターンの終わりに効く（戦闘中は死にうる）
+      const p0 = G.player;
+      if (p0.poison && !this.poisonDone) {
+        this.poisonDone = 1;
+        const d = G.POISON.battleDamage(p0.maxhp);
+        p0.hp = Math.max(0, p0.hp - d);
+        this.pops.push({ x: 160, y: 300, text: '-' + d, col: '#8fd07f', t: 0 });
+        G.audio.se('damage');
+        const self0 = this;
+        this.phase = 'msg';
+        G.msg.show('どくが からだを めぐる！\n' + p0.name + 'は ' + d + 'の ダメージ！',
+          function () { self0.poisonDone = 0; self0.next(); }, { auto: 620 });
+        return;
+      }
+      this.poisonDone = 0;
       this.defending = false;
       this.phase = 'command';
       this.cmd = 0;
@@ -340,8 +355,16 @@
             const dmg = hit(raw);
             G.audio.se('damage');
             G.fx.flash('#e03c2c', 240); G.fx.shake(7, 280);
+            // 毒を持つ敵は、当てたときに一定確率で毒にする
+            let ptxt = '';
+            if (cur.poison && !p.poison && Math.random() < cur.poison) {
+              p.poison = 1;
+              G.fx.flash('#8fd07f', 260);
+              self.pops.push({ x: 160, y: 268, text: 'どく', col: '#8fd07f', t: 0 });
+              ptxt = '\n' + p.name + 'は どくを うけた！';
+            }
             self.say(e.name + 'の こうげき！\n' + p.name + 'は ' + dmg + 'の ダメージを うけた！'
-              + (self.defending ? '\n（みを まもって はんげん）' : ''));
+              + (self.defending ? '\n（みを まもって はんげん）' : '') + ptxt);
           } else {
             G.audio.se('miss');
             self.say(e.name + 'の こうげき！\n' + p.name + 'は みを かわした！');
