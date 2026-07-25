@@ -216,6 +216,28 @@
                  'まものには それぞれ にがてな\nこうげきが ある。ほのお こおり\nいかずち……みきわめるのだ。'],
         },
         {
+          // ミナの妹。かたきではなく「知りたい」から付いてくる
+          x: 13, y: 16, spr: 'girl', dir: 0,
+          talk: function () {
+            const inParty = (G.party || []).some(function (m) { return m.allyId === 'yuki'; });
+            if (inParty) return ['わたしも いくよ。\nあしでまといには ならない。'];
+            if (G.flags.q.missing >= 3) {
+              const a = G.joinAlly('yuki');
+              G.audio.se('levelup');
+              return ['あなたが ねえさんの かたみを\nもってきてくれた ひと？',
+                      'わたしは ユキ。ミナの いもうと。',
+                      'かたきを うちたいわけじゃ ない。\nただ ねえさんが なにを しにいったのか\nしりたいの。',
+                      'つれていって。\nホイミくらいなら つかえる。',
+                      '（ユキが なかまに なった！）'];
+            }
+            if (G.flags.q.missing >= 1)
+              return ['ねえさんは ほらあなへ いったきり。',
+                      'はかもりさんが\nかたみを さがしてるって。'];
+            return ['ねえさんが かえってこないの。',
+                    'はんとしも まえから……'];
+          },
+        },
+        {
           x: 13, y: 11, spr: 'girl', dir: 0,
           talk: function () {
             if (G.flags.bossDead) return ['おにいちゃん りゅうを たおしたの！？', 'すごい！ すごい！\nみんなに じまん しちゃおう！'];
@@ -534,6 +556,26 @@
           x: 12, y: 6, spr: 'soldier', dir: 0,
           talk: ['ここは みなとまち シオカゼ。',
                  'はじまりの村より いい ぶきが\nそろっているぞ。かねを ためてこい。'],
+        },
+        {
+          // 若い船乗り。海の底を見たい、という動機で付いてくる
+          x: 14, y: 11, spr: 'soldier', dir: 0,
+          talk: function () {
+            const inParty = (G.party || []).some(function (m) { return m.allyId === 'kai'; });
+            if (inParty) return ['うみの そこ、はやく みたいぜ。'];
+            if (G.flags.read.g3) {
+              const a = G.joinAlly('kai');
+              G.audio.se('levelup');
+              return ['あんた とうだいに はいったのか！',
+                      'おれは カイ。ふなのりだ。',
+                      'おやじは「うみの そこに みやこが ある」と\nいって しんだ。ずっと うたがってた。',
+                      'でも あんたの はなしを きいて\nかんがえが かわった。',
+                      'つれていってくれ。\nちからには なる。',
+                      '（カイが なかまに なった！）'];
+            }
+            return ['ふるい とうだいって しってるか？',
+                    '５ねんまえまで がくしゃが\nすんでたらしい。'];
+          },
         },
         {
           x: 8, y: 11, spr: 'girl', dir: 0,

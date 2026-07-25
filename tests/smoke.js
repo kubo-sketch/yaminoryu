@@ -118,6 +118,7 @@ function reset() {
   G.field.busy = false;
   G.fx.fadeV = 0; G.fx.fadeTarget = 0; G.fx.fadeCb = null;
   G.gameover.shown = 0; G.gameover.t = 0;
+  (G.party || [G.player]).forEach(function (m) { m.alive = true; });
   G.state = 'field';
 }
 
@@ -220,11 +221,11 @@ G.player.maxmp = 30; G.player.mp = 30; G.player.items.yakusou = 3;
 G.player.lv = 8; G.player.baseAtk = 32; G.player.baseDef = 26;
 G.player.maxhp = 84; G.player.hp = 84;
 G.startBattle('goblin', false); step('b', 4);
-tap('right', 2); tap('ok', 3);            // じゅもん
+tap('ok', 3);                             // じゅもん（1つ下）
 ok('じゅもんメニュー phase=' + G.battle.phase);
 tap('ok', 8);                              // 唱える
 for (let i = 0; i < 8; i++) tap('ok', 8);
-if (G.state === 'battle') { tap('down', 2); tap('ok', 3); ok('どうぐメニュー phase=' + G.battle.phase); tap('ok', 8); }
+if (G.state === 'battle') { tap('down', 2); tap('down', 2); tap('ok', 3); ok('どうぐメニュー phase=' + G.battle.phase); tap('ok', 8); }
 for (let i = 0; i < 40 && G.state === 'battle'; i++) tap('ok', 8);
 ok('呪文・道具つき戦闘 完了');
 
@@ -232,7 +233,8 @@ console.log('\n--- にげる ---');
 reset();
 G.player.hp = G.player.maxhp;
 G.startBattle('bat', false); step('b', 4);
-tap('down', 2); tap('right', 2); tap('ok', 4);
+for (let i = 0; i < 4; i++) tap('down', 2);   // にげる（いちばん下）
+tap('ok', 4);
 for (let i = 0; i < 30 && G.state === 'battle'; i++) tap('ok', 8);
 ok('にげる（state=' + G.state + '）');
 

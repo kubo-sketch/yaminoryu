@@ -246,5 +246,68 @@ console.log('\n=== 天候 ===');
   else ok(`港：討伐前=${before2 || 'なし'} → 討伐後=${after2}`);
 }
 
+/* ---- 仲間 ---- */
+console.log('\n=== 仲間 ===');
+{
+  // main.js の joinAlly/allyStats/syncAllies を読み込んで単体で検証する
+  const src = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const pick = (name) => {
+    const i = src.indexOf('G.' + name + ' = function');
+    if (i < 0) return null;
+    let d = 0, j = src.indexOf('{', i);
+    for (let k = j; k < src.length; k++) {
+      if (src[k] === '{') d++;
+      else if (src[k] === '}') { d--; if (!d) return src.slice(i, k + 2); }
+    }
+    return null;
+  };
+  const code = ['allyStats', 'joinAlly', 'syncAllies'].map(pick).join('\n');
+  if (!code || code.indexOf('null') === 0) fail('仲間の処理が main.js に無い');
+  else {
+    G.player = { name: 'ユウ', lv: 1, items: {}, spells: [] };
+    G.party = [G.player];
+    new Function('G', code)(G);
+
+    const a = G.joinAlly('yuki');
+    if (!a) fail('仲間が加入しない');
+    else ok(`${a.name} が加入（Lv${a.lv} HP${a.maxhp} MP${a.maxmp} こうげき${a.baseAtk}）`);
+    if (G.joinAlly('yuki')) fail('同じ仲間が二重に加入できる');
+    else ok('二重加入しない');
+
+    // 主人公が上がると仲間も追随するか
+    G.player.lv = 20;
+    const ups = G.syncAllies();
+    const y = G.party[1];
+    if (y.lv !== 20) fail(`仲間が追随しない（Lv${y.lv}）`);
+    else ok(`Lv20 に追随（HP${y.maxhp} こうげき${y.baseAtk} 呪文${y.spells.length}個）`);
+    if (!ups.length) fail('追随しても呪文を覚えない');
+    else ok(`追随中に ${ups.length} 個の呪文を習得`);
+
+    // 役割の差が出ているか
+    const k = G.joinAlly('kai');
+    if (!k) fail('2人目が加入しない');
+    else if (k.baseAtk <= y.baseAtk) fail('前衛の攻撃力が回復役以下（役割差が無い）');
+    else ok(`役割差：${y.name} こうげき${y.baseAtk}/MP${y.maxmp} ・ ${k.name} こうげき${k.baseAtk}/MP${k.maxmp}`);
+    if (G.party.length !== 3) fail('パーティ人数が合わない');
+    else ok('パーティ3人');
+  }
+}
+
+/* ---- レベル上限 ---- */
+console.log('\n=== 成長 ===');
+{
+  const L = G.LEVELS;
+  if (L.length < 30) fail(`レベル上限が ${L.length} と低い`);
+  else ok(`Lv1〜${L.length}`);
+  let bad = 0;
+  for (let i = 1; i < L.length; i++)
+    if (L[i].hp <= L[i - 1].hp || L[i].atk <= L[i - 1].atk || L[i].exp <= L[i - 1].exp) bad++;
+  if (bad) fail(`成長が単調増加でない箇所が ${bad}`);
+  else ok('HP・こうげき・必要経験値がすべて単調増加');
+  const learned = L.filter((d) => d.learn).length;
+  if (learned < 12) fail(`習得呪文が ${learned} 個しかない`);
+  else ok(`呪文の習得 ${learned} 回（最後は Lv${L.map((d,i)=>d.learn?i+1:0).filter(Boolean).pop()}）`);
+}
+
 console.log(err ? `\n【NG】${err}件` : '\n【OK】シナリオ進行に破綻なし');
 process.exit(err ? 1 : 0);

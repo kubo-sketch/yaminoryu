@@ -517,7 +517,9 @@
         G.field.busy = true;
         G.audio.stopBgm();
         G.fx.fadeOut(function () {
-          p.hp = p.maxhp; p.mp = p.maxmp; p.poison = 0;
+          (G.party || [p]).forEach(function (m) {
+            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.alive = true;
+          });
           setTimeout(function () {
             G.fx.fadeIn(function () {
               G.audio.scene(p.map);

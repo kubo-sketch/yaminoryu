@@ -21,7 +21,8 @@
   G.saveGame = function () {
     const p = G.player;
     const data = {
-      v: 1, player: p, flags: G.flags,
+      v: 2, player: p, flags: G.flags,
+      allies: (G.party || [p]).slice(1),
       at: { map: p.map, x: p.x, y: p.y, dir: p.dir },
       playMs: p.playMs,
     };
@@ -46,6 +47,9 @@
     if (p.playMs === undefined) p.playMs = 0;
     if (!p.items) p.items = {};
     if (!p.spells) p.spells = [];
+    // 仲間を復元（セーブに無ければ主人公だけ）
+    G.party = [p];
+    (d.allies || []).forEach(function (a) { G.party.push(a); });
     G.field.enter(d.at.map, d.at.x, d.at.y, d.at.dir);
     G.state = 'field';
     return true;
@@ -68,9 +72,64 @@
       rx: 0, ry: 0, moving: false, moveT: 0, frame: 0,
       steps: 0, kills: 0, holy: 0, poison: 0, playMs: 0,
     };
+    G.party = [G.player];
     G.field.enter('town', 15, 23, 3);
     G.state = 'field';
     G.sceneOpening();
+  };
+
+  /* =====================================================================
+     仲間
+     ===================================================================== */
+  // 主人公のレベル表に倍率をかけて、仲間ごとの能力を出す
+  G.allyStats = function (def, lv) {
+    const L = G.LEVELS[Math.min(lv, G.LEVELS.length) - 1];
+    return {
+      maxhp: Math.max(1, Math.round(L.hp * def.mul.hp)),
+      maxmp: Math.round(L.mp * def.mul.mp),
+      baseAtk: Math.max(1, Math.round(L.atk * def.mul.atk)),
+      baseDef: Math.max(0, Math.round(L.def * def.mul.def)),
+    };
+  };
+  G.joinAlly = function (id) {
+    if (!G.party) G.party = [G.player];
+    if (G.party.some(function (m) { return m.allyId === id; })) return null;
+    const d = G.ALLIES[id];
+    const lv = Math.max(1, G.player.lv);
+    const st = G.allyStats(d, lv);
+    const spells = [];
+    Object.keys(d.spellAt).forEach(function (k) { if (+k <= lv) spells.push(d.spellAt[k]); });
+    const a = {
+      allyId: id, name: d.name, spr: d.spr, lv: lv,
+      hp: st.maxhp, maxhp: st.maxhp, mp: st.maxmp, maxmp: st.maxmp,
+      baseAtk: st.baseAtk, baseDef: st.baseDef,
+      weapon: d.weapon, armor: d.armor, spells: spells,
+      alive: true, poison: 0,
+    };
+    G.party.push(a);
+    return a;
+  };
+  // 仲間は主人公と同じレベルで追随する（置いていかれない）
+  G.syncAllies = function () {
+    const out = [];
+    (G.party || []).forEach(function (m, i) {
+      if (!i || !m.allyId) return;
+      const d = G.ALLIES[m.allyId];
+      while (m.lv < G.player.lv) {
+        m.lv++;
+        const st = G.allyStats(d, m.lv);
+        const dh = st.maxhp - m.maxhp, dm = st.maxmp - m.maxmp;
+        m.maxhp = st.maxhp; m.maxmp = st.maxmp;
+        m.baseAtk = st.baseAtk; m.baseDef = st.baseDef;
+        if (m.alive) { m.hp = Math.min(m.maxhp, m.hp + dh); m.mp = Math.min(m.maxmp, m.mp + dm); }
+        const sp = d.spellAt[m.lv];
+        if (sp && m.spells.indexOf(sp) < 0) {
+          m.spells.push(sp);
+          out.push(m.name + 'は じゅもん「' + G.SPELLS[sp].name + '」を\nおぼえた！');
+        }
+      }
+    });
+    return out;
   };
 
   /* =====================================================================
@@ -147,7 +206,9 @@
           'ゴールドは はんぶん\nおとしてしまった。（-' + lost + 'G）',
           'きを つけて いくのだぞ。',
         ], function () {
-          p.hp = p.maxhp; p.mp = p.maxmp; p.poison = 0;
+          (G.party || [p]).forEach(function (m) {
+            m.hp = m.maxhp; m.mp = m.maxmp; m.poison = 0; m.alive = true;
+          });
           G.field.enter('town', 24, 20, 3);
           G.state = 'field';
           G.gameover.shown = 0;

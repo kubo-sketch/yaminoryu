@@ -53,7 +53,10 @@
       this.isBoss = !!isBoss;
       this.canFlee = d.flee !== false;
       this.cmd = 0; this.sub = 0; this.target = 0;
-      this.defending = false;
+      this.actor = 0;                                // いま入力しているメンバー
+      this.orders = [];                              // 各メンバーの行動予約
+      G.party = G.party || [G.player];
+      G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; });
       this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
       this.intro = 1;                                // 1→0 で敵がせり上がる
       G.state = 'battle';
@@ -96,6 +99,44 @@
       return G.W / 2 + (i - (n - 1) / 2) * span;
     },
 
+    /* ---------------- パーティ ---------------- */
+    members: function () { return G.party || [G.player]; },
+    aliveMembers: function () { return this.members().filter(function (m) { return m.alive !== false && m.hp > 0; }); },
+    cur: function () { return this.members()[this.actor] || G.player; },
+    nextAliveActor: function (from) {
+      const ms = this.members();
+      for (let i = from + 1; i < ms.length; i++) if (ms[i].alive !== false && ms[i].hp > 0) return i;
+      return -1;
+    },
+    prevAliveActor: function (from) {
+      const ms = this.members();
+      for (let i = from - 1; i >= 0; i--) if (ms[i].alive !== false && ms[i].hp > 0) return i;
+      return 0;
+    },
+    // 1人ぶんの行動を予約し、次のメンバーへ。全員終わったら実行に移る
+    commit: function (order) {
+      order.who = this.actor;
+      this.orders.push(order);
+      const nx = this.nextAliveActor(this.actor);
+      if (nx >= 0) { this.actor = nx; this.cmd = 0; this.phase = 'command'; return; }
+      this.execTurn();
+    },
+    // 予約された行動を順に実行し、そのあと敵が動く
+    execTurn: function () {
+      const self = this;
+      const acts = [];
+      this.orders.forEach(function (o) {
+        acts.push(function () {
+          const m = self.members()[o.who];
+          if (!m || m.alive === false || m.hp <= 0) { self.next(); return; }
+          self.perform(m, o);
+        });
+      });
+      this.enemyPhase(acts);
+      this.orders = [];
+      this.run(acts);
+    },
+
     /* ---------------- 行動キュー ---------------- */
     run: function (list) {
       this.queue = list;
@@ -105,23 +146,33 @@
     next: function () {
       if (this.queue.length) { this.queue.shift()(); return; }
       if (!this.living().length) { this.doWin(); return; }
-      if (G.player.hp <= 0) { this.doLose(); return; }
+      if (!this.aliveMembers().length) { this.doLose(); return; }
       // 毒は1ターンの終わりに効く（戦闘中は死にうる）
-      const p0 = G.player;
-      if (p0.poison && !this.poisonDone) {
-        this.poisonDone = 1;
-        const d = G.POISON.battleDamage(p0.maxhp);
-        p0.hp = Math.max(0, p0.hp - d);
-        this.pops.push({ x: 160, y: 300, text: '-' + d, col: '#8fd07f', t: 0 });
-        G.audio.se('damage');
-        const self0 = this;
-        this.phase = 'msg';
-        G.msg.show('どくが からだを めぐる！\n' + p0.name + 'は ' + d + 'の ダメージ！',
-          function () { self0.poisonDone = 0; self0.next(); }, { auto: 620 });
-        return;
+      if (!this.poisonDone) {
+        const hurt = this.aliveMembers().filter(function (m) { return m.poison; });
+        if (hurt.length) {
+          this.poisonDone = 1;
+          const self0 = this;
+          let txt = '';
+          hurt.forEach(function (m) {
+            const d = G.POISON.battleDamage(m.maxhp);
+            m.hp = Math.max(0, m.hp - d);
+            self0.popAlly(m, '-' + d, '#8fd07f');
+            txt += m.name + 'は どくで ' + d + 'の ダメージ！\n';
+            if (m.hp <= 0) { m.alive = false; txt += m.name + 'は たおれた！\n'; }
+          });
+          G.audio.se('damage');
+          this.phase = 'msg';
+          G.msg.show(txt.replace(/\n$/, ''),
+            function () { self0.poisonDone = 0; self0.next(); }, { auto: 620 });
+          return;
+        }
       }
       this.poisonDone = 0;
-      this.defending = false;
+      this.members().forEach(function (m) { m.defending = false; });
+      this.orders = [];
+      const first = this.aliveMembers().length ? this.members().indexOf(this.aliveMembers()[0]) : 0;
+      this.actor = first;
       this.phase = 'command';
       this.cmd = 0;
       this.pickTarget();
@@ -151,155 +202,190 @@
       return '';
     },
 
-    doAttack: function () {
-      const self = this, p = G.player;
-      const e = this.enemies[this.target];
-      const acts = [];
-      acts.push(function () {
-        if (!e.alive) { self.next(); return; }
-        const crit = isCrit();
-        const raw = crit ? Math.floor(G.atkOf(p) * (0.95 + Math.random() * 0.2))
-          : damage(G.atkOf(p), Math.max(0, e.def.def - e.defDown));
-        e.lunge = 200;
-        if (raw <= 0) {
-          G.audio.se('miss');
-          self.say(p.name + 'の こうげき！\nミス！ ダメージを あたえられない！');
-          return;
-        }
-        const r = self.hitEnemy(e, raw, null);
-        G.audio.se(crit ? 'crit' : 'hit');
-        G.fx.shake(crit ? 8 : 4, crit ? 260 : 180);
-        self.efxAt(crit ? 'slash2' : 'slash', self.target, crit ? 520 : 380);
-        self.hitstop = crit ? 110 : 60;
-        self.pop(self.target, String(r.dmg), crit ? '#e8c85c' : '#f2f0e5');
-        let t = p.name + 'の こうげき！\n';
-        if (crit) t += 'かいしんの いちげき！！\n';
-        t += e.name + 'に ' + r.dmg + 'の ダメージ！';
-        if (!e.alive) t += '\n' + e.name + 'を たおした！';
-        self.say(t);
-      });
-      this.enemyPhase(acts);
-      this.run(acts);
+    // 予約された行動を「そのメンバー」として実行する
+    perform: function (m, o) {
+      const self = this;
+      if (o.kind === 'attack') return this.actAttack(m, o.target);
+      if (o.kind === 'defend') return this.actDefend(m);
+      if (o.kind === 'spell') return this.actSpell(m, o.id, o.target);
+      if (o.kind === 'item') return this.actItem(m, o.id);
+      if (o.kind === 'flee') return this.actFlee(m);
+      this.next();
     },
 
-    doDefend: function () {
-      const self = this, p = G.player;
-      this.defending = true;
-      const acts = [];
-      acts.push(function () {
-        const back = Math.min(p.maxmp - p.mp, 1 + ((Math.random() * 2) | 0));
-        p.mp += back;
-        G.audio.se('select');
-        self.say(p.name + 'は みを まもっている。'
-          + (back ? '\n（MPが すこし かいふくした）' : ''));
-      });
-      this.enemyPhase(acts);
-      this.run(acts);
-    },
-
-    doSpell: function (id) {
-      const self = this, p = G.player;
-      const sp = G.SPELLS[id];
-      if (p.mp < sp.mp) {
-        G.audio.se('cancel');
-        this.say('MPが たりない！', function () { self.phase = 'command'; });
+    actAttack: function (m, tgt) {
+      const self = this;
+      const e = this.enemies[tgt !== undefined ? tgt : this.target];
+      if (!e || !e.alive) {
+        // 予約した相手が既に倒れていたら、生きている敵へ振り替える
+        const alt = this.living()[0];
+        if (!alt) { this.next(); return; }
+        return this.actAttack(m, this.enemies.indexOf(alt));
+      }
+      const crit = isCrit();
+      const raw = crit ? Math.floor(G.atkOf(m) * (0.95 + Math.random() * 0.2))
+        : damage(G.atkOf(m), Math.max(0, e.def.def - e.defDown));
+      e.lunge = 200;
+      if (raw <= 0) {
+        G.audio.se('miss');
+        this.say(m.name + 'の こうげき！\nミス！ ダメージを あたえられない！');
         return;
       }
-      p.mp -= sp.mp;
-      const tgt = this.target;
-      const acts = [];
-      acts.push(function () {
-        G.audio.se(sp.kind === 'heal' ? 'heal' : sp.kind === 'sleep' ? 'sleep' : 'spell');
-        let t = p.name + 'は ' + sp.name + 'を となえた！\n';
-
-        if (sp.kind === 'heal') {
-          const before = p.hp;
-          p.hp = Math.min(p.maxhp, p.hp + sp.power());
-          self.pops.push({ x: 160, y: 300, text: '+' + (p.hp - before), col: '#7fd07f', t: 0 });
-          t += 'HPが ' + (p.hp - before) + ' かいふくした。';
-
-        } else if (sp.kind === 'attack') {
-          const targets = sp.all ? self.living() : [self.enemies[tgt]].filter(function (x) { return x && x.alive; });
-          if (!targets.length) { self.next(); return; }
-          G.fx.flash(sp.elem === 'ice' ? '#8fd8ff' : sp.elem === 'thunder' ? '#fff2a0' : '#ffcc66', 200);
-          G.fx.shake(5, 220);
-          const ek = sp.elem || 'fire';
-          if (sp.all) self.efxAll(ek, 620); else self.efxAt(ek, tgt, 620);
-          self.hitstop = 90;
-          let note = '';
-          targets.forEach(function (te) {
-            const idx = self.enemies.indexOf(te);
-            const r = self.hitEnemy(te, sp.power(), sp.elem);
-            self.pop(idx, String(r.dmg), sp.elem === 'ice' ? '#8fd8ff' : sp.elem === 'thunder' ? '#fff2a0' : '#ffb060');
-            t += te.name + 'に ' + r.dmg + 'の ダメージ！\n';
-            if (!note) note = self.elemNote(r.mul);
-          });
-          t = t.replace(/\n$/, '') + note;
-          const dead = targets.filter(function (x) { return !x.alive; });
-          if (dead.length) t += '\n' + dead[0].name + 'を たおした！';
-
-        } else if (sp.kind === 'sleep') {
-          const te = self.enemies[tgt];
-          if (!te || !te.alive) { self.next(); return; }
-          if (te.def.boss ? Math.random() < 0.1 : Math.random() < 0.6) {
-            te.sleep = 2 + G.rnd(3);
-            t += te.name + 'は ねむってしまった！';
-          } else t += te.name + 'には きかなかった！';
-
-        } else if (sp.kind === 'debuff') {
-          const te = self.enemies[tgt];
-          if (!te || !te.alive) { self.next(); return; }
-          if (te.defDown) t += te.name + 'の しゅび力は\nもう さがっている。';
-          else if (te.def.boss ? Math.random() < 0.45 : Math.random() < 0.8) {
-            te.defDown = Math.ceil(te.def.def * 0.45);
-            self.pop(tgt, 'DEF↓', '#c07ae8');
-            t += te.name + 'の しゅび力が さがった！';
-          } else t += te.name + 'には きかなかった！';
-        }
-        self.say(t);
-      });
-      this.enemyPhase(acts);
-      this.run(acts);
+      const idx = this.enemies.indexOf(e);
+      const r = this.hitEnemy(e, raw, null);
+      G.audio.se(crit ? 'crit' : 'hit');
+      G.fx.shake(crit ? 8 : 4, crit ? 260 : 180);
+      this.efxAt(crit ? 'slash2' : 'slash', idx, crit ? 520 : 380);
+      this.hitstop = crit ? 110 : 60;
+      this.pop(idx, String(r.dmg), crit ? '#e8c85c' : '#f2f0e5');
+      let t = m.name + 'の こうげき！\n';
+      if (crit) t += 'かいしんの いちげき！！\n';
+      t += e.name + 'に ' + r.dmg + 'の ダメージ！';
+      if (!e.alive) t += '\n' + e.name + 'を たおした！';
+      this.say(t);
     },
 
-    doItem: function (id) {
-      const self = this, p = G.player;
+    actDefend: function (m) {
+      m.defending = true;
+      const back = Math.min(m.maxmp - m.mp, 1 + ((Math.random() * 2) | 0));
+      m.mp += back;
+      G.audio.se('select');
+      this.say(m.name + 'は みを まもっている。' + (back ? '\n（MPが すこし かいふくした）' : ''));
+    },
+
+    actSpell: function (m, id, tgt) {
+      const self = this;
+      const sp = G.SPELLS[id];
+      if (m.mp < sp.mp) { this.say(m.name + 'は MPが たりない！'); return; }
+      m.mp -= sp.mp;
+      G.audio.se(sp.kind === 'heal' || sp.kind === 'healall' ? 'heal'
+        : sp.kind === 'sleep' ? 'sleep' : sp.kind === 'revive' ? 'levelup' : 'spell');
+      let t = m.name + 'は ' + sp.name + 'を となえた！\n';
+
+      if (sp.kind === 'heal') {
+        // 対象は「いちばん傷ついている味方」（自動選択で操作を軽くする）
+        const tg = this.mostHurt();
+        const before = tg.hp;
+        tg.hp = Math.min(tg.maxhp, tg.hp + sp.power());
+        this.popAlly(tg, '+' + (tg.hp - before), '#7fd07f');
+        t += tg.name + 'の HPが ' + (tg.hp - before) + ' かいふくした。';
+
+      } else if (sp.kind === 'healall') {
+        let sum = 0;
+        this.aliveMembers().forEach(function (a) {
+          const b = a.hp;
+          a.hp = Math.min(a.maxhp, a.hp + sp.power());
+          sum += a.hp - b;
+          self.popAlly(a, '+' + (a.hp - b), '#7fd07f');
+        });
+        t += 'パーティの HPが\nあわせて ' + sum + ' かいふくした。';
+
+      } else if (sp.kind === 'revive') {
+        const dead = this.members().filter(function (a) { return a.alive === false || a.hp <= 0; });
+        if (!dead.length) { t += 'しかし きき目が なかった。'; }
+        else {
+          const tg = dead[0];
+          const rate = sp.power();
+          if (rate >= 1 || Math.random() < 0.6) {
+            tg.alive = true;
+            tg.hp = Math.max(1, Math.round(tg.maxhp * rate));
+            G.fx.flash('#ffe8a0', 400);
+            this.popAlly(tg, 'いきかえった', '#e8c85c');
+            t += tg.name + 'は いきかえった！';
+          } else t += 'しかし ' + tg.name + 'は\nいきかえらなかった。';
+        }
+
+      } else if (sp.kind === 'attack') {
+        const targets = sp.all ? this.living()
+          : [this.enemies[tgt !== undefined ? tgt : this.target]].filter(function (x) { return x && x.alive; });
+        if (!targets.length) {
+          const alt = this.living();
+          if (!alt.length) { this.next(); return; }
+          targets.push(alt[0]);
+        }
+        G.fx.flash(sp.elem === 'ice' ? '#8fd8ff' : sp.elem === 'thunder' ? '#fff2a0'
+          : sp.elem === 'fire' ? '#ffcc66' : '#e0b0ff', 200);
+        G.fx.shake(5, 220);
+        const ek = sp.elem || 'dark';
+        if (sp.all) this.efxAll(ek === 'dark' ? 'fire' : ek, 620);
+        else this.efxAt(ek === 'dark' ? 'fire' : ek, this.enemies.indexOf(targets[0]), 620);
+        this.hitstop = 90;
+        let note = '';
+        targets.forEach(function (te) {
+          const i2 = self.enemies.indexOf(te);
+          const r = self.hitEnemy(te, sp.power(), sp.elem);
+          self.pop(i2, String(r.dmg), sp.elem === 'ice' ? '#8fd8ff'
+            : sp.elem === 'thunder' ? '#fff2a0' : '#ffb060');
+          t += te.name + 'に ' + r.dmg + 'の ダメージ！\n';
+          if (!note) note = self.elemNote(r.mul);
+        });
+        t = t.replace(/\n$/, '') + note;
+        const dead = targets.filter(function (x) { return !x.alive; });
+        if (dead.length) t += '\n' + dead[0].name + 'を たおした！';
+
+      } else if (sp.kind === 'sleep') {
+        const te = this.enemies[tgt !== undefined ? tgt : this.target];
+        if (!te || !te.alive) { this.next(); return; }
+        if (te.def.boss ? Math.random() < 0.1 : Math.random() < 0.6) {
+          te.sleep = 2 + G.rnd(3);
+          t += te.name + 'は ねむってしまった！';
+        } else t += te.name + 'には きかなかった！';
+
+      } else if (sp.kind === 'debuff') {
+        const te = this.enemies[tgt !== undefined ? tgt : this.target];
+        if (!te || !te.alive) { this.next(); return; }
+        if (te.defDown) t += te.name + 'の しゅび力は\nもう さがっている。';
+        else if (te.def.boss ? Math.random() < 0.45 : Math.random() < 0.8) {
+          te.defDown = Math.ceil(te.def.def * 0.45);
+          this.pop(this.enemies.indexOf(te), 'DEF↓', '#c07ae8');
+          t += te.name + 'の しゅび力が さがった！';
+        } else t += te.name + 'には きかなかった！';
+      }
+      this.say(t);
+    },
+
+    actItem: function (m, id) {
+      const p = G.player;                              // 道具はパーティ共有
       const it = G.ITEMS[id];
-      if (!p.items[id]) { G.audio.se('cancel'); this.phase = 'command'; return; }
+      if (!p.items[id]) { this.next(); return; }
       p.items[id]--;
       if (p.items[id] <= 0) delete p.items[id];
-      const acts = [];
-      acts.push(function () {
-        G.audio.se('heal');
-        const before = p.hp;
-        const text = it.use(p);
-        if (p.hp > before) self.pops.push({ x: 160, y: 300, text: '+' + (p.hp - before), col: '#7fd07f', t: 0 });
-        self.say(text);
-      });
-      this.enemyPhase(acts);
-      this.run(acts);
+      G.audio.se('heal');
+      // 回復系はいちばん傷ついている味方に使う
+      const tg = (id === 'yakusou') ? this.mostHurt() : m;
+      const before = tg.hp;
+      const text = it.use(tg);
+      if (tg.hp > before) this.popAlly(tg, '+' + (tg.hp - before), '#7fd07f');
+      this.say(m.name + 'は ' + it.name + 'を つかった。\n' + text.split('\n').slice(1).join('\n'));
     },
 
-    doFlee: function () {
-      const self = this, p = G.player;
+    actFlee: function (m) {
+      const self = this;
       const fail = function () {
-        const acts = [function () { self.say(p.name + 'は にげだした！\nしかし まわりこまれて しまった！'); }];
-        self.enemyPhase(acts);
-        self.run(acts);
+        self.say(m.name + 'は にげだそうとした！\nしかし まわりこまれて しまった！');
       };
       if (!this.canFlee) { fail(); return; }
       const agi = this.living().some(function (e) { return e.def.agi; });
-      // 追い詰められているほど逃げやすい。全滅の一歩手前で
-      // 「逃げられずに死ぬ」を減らすための救済
       let rate = agi ? 0.45 : 0.68;
-      const ratio = p.hp / p.maxhp;
+      const ratio = m.hp / m.maxhp;
       if (ratio < 0.25) rate += 0.18;
       else if (ratio < 0.5) rate += 0.08;
       if (Math.random() < Math.min(0.92, rate)) {
         G.audio.se('flee');
         this.phase = 'over';
-        this.say(p.name + 'は にげだした！', function () { G.endBattle('flee'); });
+        this.say('パーティは にげだした！', function () { G.endBattle('flee'); });
       } else fail();
+    },
+
+    // いちばんHPの割合が低い生存メンバー
+    mostHurt: function () {
+      const alive = this.aliveMembers();
+      if (!alive.length) return G.player;
+      return alive.slice().sort(function (a, b) { return a.hp / a.maxhp - b.hp / b.maxhp; })[0];
+    },
+    popAlly: function (m, text, col) {
+      const i = this.members().indexOf(m);
+      this.pops.push({ x: 120 + i * 150, y: 300, text: text, col: col || '#f2f0e5', t: 0 });
     },
 
     /* =====================================================================
@@ -309,8 +395,11 @@
       const self = this;
       this.enemies.forEach(function (e, idx) {
         acts.push(function () {
-          const p = G.player;
-          if (!e.alive || p.hp <= 0) { self.next(); return; }
+          if (!e.alive || !self.aliveMembers().length) { self.next(); return; }
+          // 狙う相手はパーティからランダム（HPが低い者をやや狙いやすくする）
+          const alive = self.aliveMembers();
+          const p = alive.length === 1 ? alive[0]
+            : (Math.random() < 0.35 ? self.mostHurt() : alive[(Math.random() * alive.length) | 0]);
 
           // ボスの形態変化
           const rg = e.def.rage;
@@ -334,9 +423,10 @@
           const hit = function (dmg, kind) {
             self.efx.push({ kind: kind || 'claw', x: 160, y: 300, t: 0, dur: 380 });
             self.hitstop = 70;
-            if (self.defending) dmg = Math.max(1, Math.floor(dmg * 0.5));
+            if (p.defending) dmg = Math.max(1, Math.floor(dmg * 0.5));
             p.hp = Math.max(0, p.hp - dmg);
-            self.pops.push({ x: 160, y: 300, text: '-' + dmg, col: '#ff8878', t: 0 });
+            self.popAlly(p, '-' + dmg, '#ff8878');
+            if (p.hp <= 0) { p.alive = false; p.defending = false; }
             return dmg;
           };
 
@@ -345,7 +435,8 @@
             G.audio.se('fire');
             G.fx.flash('#ff7a2a', 320); G.fx.shake(9, 380);
             self.say(e.name + 'は ほのおの いきを はいた！\n' + p.name + 'は ' + dmg + 'の ダメージ！'
-              + (self.defending ? '\n（みを まもって はんげん）' : ''));
+              + (p.defending ? '\n（みを まもって はんげん）' : '')
+              + (p.hp <= 0 ? '\n' + p.name + 'は たおれた！' : ''));
             return;
           }
           if (cur.spell && Math.random() < cur.spell.rate) {
@@ -353,7 +444,8 @@
             const dmg = hit(Math.max(1, Math.floor(sp.power() * 0.85)), 'dark');
             G.audio.se('spell');
             G.fx.flash('#c07ae8', 260); G.fx.shake(6, 260);
-            self.say(e.name + 'は ' + sp.name + 'を となえた！\n' + p.name + 'は ' + dmg + 'の ダメージ！');
+            self.say(e.name + 'は ' + sp.name + 'を となえた！\n' + p.name + 'は ' + dmg + 'の ダメージ！'
+              + (p.hp <= 0 ? '\n' + p.name + 'は たおれた！' : ''));
             return;
           }
           const raw = damage(cur.atk, G.defOf(p));
@@ -370,7 +462,8 @@
               ptxt = '\n' + p.name + 'は どくを うけた！';
             }
             self.say(e.name + 'の こうげき！\n' + p.name + 'は ' + dmg + 'の ダメージを うけた！'
-              + (self.defending ? '\n（みを まもって はんげん）' : '') + ptxt);
+              + (p.defending ? '\n（みを まもって はんげん）' : '') + ptxt
+              + (p.hp <= 0 ? '\n' + p.name + 'は たおれた！' : ''));
           } else {
             G.audio.se('miss');
             self.say(e.name + 'の こうげき！\n' + p.name + 'は みを かわした！');
@@ -396,7 +489,8 @@
         'まものを たおした！\n' + p.name + 'は ' + exp + 'ポイントの けいけんちと\n'
           + gold + 'ゴールドを てにいれた！',
       ], function () {
-        const ups = G.checkLevelUp();
+        let ups = G.checkLevelUp();
+        if (G.syncAllies) ups = ups.concat(G.syncAllies());
         if (ups.length) {
           G.audio.se('levelup');
           G.msg.show(ups, function () { self.finishWin(); });
@@ -448,14 +542,21 @@
         const n = CMDS.length;
         if (G.pressed('down')) { this.cmd = (this.cmd + 1) % n; G.audio.se('select'); }
         if (G.pressed('up')) { this.cmd = (this.cmd - 1 + n) % n; G.audio.se('select'); }
+        // 前のメンバーの入力に戻る
+        if (G.pressed('cancel') && this.actor > 0) {
+          G.audio.se('cancel');
+          this.orders.pop();
+          this.actor = this.prevAliveActor(this.actor);
+          return;
+        }
         if (G.pressed('ok')) {
           G.audio.se('confirm');
           const c = this.cmd;
           if (c === 0) this.beginTarget('attack');
           else if (c === 1) this.openSub('spell');
-          else if (c === 2) this.doDefend();
+          else if (c === 2) this.commit({ kind: 'defend' });
           else if (c === 3) this.openSub('item');
-          else this.doFlee();
+          else this.commit({ kind: 'flee' });
         }
         return;
       }
@@ -475,7 +576,8 @@
           G.audio.se('confirm');
           const sp = this.pendingSpell;
           this.pendingSpell = null;
-          if (sp) this.doSpell(sp); else this.doAttack();
+          if (sp) this.commit({ kind: 'spell', id: sp, target: this.target });
+          else this.commit({ kind: 'attack', target: this.target });
         }
         return;
       }
@@ -491,36 +593,35 @@
           G.audio.se('confirm');
           if (this.phase === 'spell') {
             const sp = G.SPELLS[item.id];
-            // 単体に効く呪文は対象を選ばせる（敵が1体なら省略）
-            if (!sp.all && sp.kind !== 'heal' && this.living().length > 1) {
+            const needTarget = ['attack', 'sleep', 'debuff'].indexOf(sp.kind) >= 0;
+            if (needTarget && !sp.all && this.living().length > 1) {
               this.pendingSpell = item.id;
               this.beginTarget('spell');
-            } else this.doSpell(item.id);
-          } else this.doItem(item.id);
+            } else this.commit({ kind: 'spell', id: item.id, target: this.target });
+          } else this.commit({ kind: 'item', id: item.id });
         }
       }
     },
 
     beginTarget: function (kind) {
+      this.pickTarget();
       if (this.living().length <= 1) {
-        this.pickTarget();
         if (kind === 'spell' && this.pendingSpell) {
           const sp = this.pendingSpell; this.pendingSpell = null;
-          this.doSpell(sp);
-        } else this.doAttack();
+          this.commit({ kind: 'spell', id: sp, target: this.target });
+        } else this.commit({ kind: 'attack', target: this.target });
         return;
       }
-      this.pickTarget();
       this.phase = 'target';
     },
 
     openSub: function (kind) {
-      const p = G.player;
+      const p = this.cur();
       this.sub = 0;
       this.subList = [];
       const self = this;
       if (kind === 'spell') {
-        p.spells.forEach(function (id) {
+        (p.spells || []).forEach(function (id) {
           const sp = G.SPELLS[id];
           if (!sp.battle) return;
           self.subList.push({
@@ -535,10 +636,11 @@
         }
         this.phase = 'spell';
       } else {
-        Object.keys(p.items).forEach(function (id) {
+        const inv = G.player.items;                   // 道具はパーティ共有
+        Object.keys(inv).forEach(function (id) {
           const it = G.ITEMS[id];
           if (!it.battle) return;
-          self.subList.push({ id: id, label: it.name, right: '×' + p.items[id] });
+          self.subList.push({ id: id, label: it.name, right: '×' + inv[id] });
         });
         if (!this.subList.length) {
           G.audio.se('cancel');
@@ -683,8 +785,7 @@
         G.ctx.globalAlpha = 1;
       });
 
-      G.drawHud();
-      if (this.defending) G.text('ぼうぎょ', 30, 148, { size: 17, color: '#8fd8ff' });
+      this.drawParty();
 
       if (this.phase === 'command' || this.phase === 'target') this.drawCmd(this.phase === 'target');
       else if (this.phase === 'spell' || this.phase === 'item') { this.drawCmd(true); this.drawSub(); }
@@ -779,10 +880,46 @@
       c.globalAlpha = 1;
     },
 
+    // パーティの状態（左上に縦積み。入力中の者を光らせる）
+    drawParty: function () {
+      const ms = this.members();
+      const w = 214, h = 30 + ms.length * 52;
+      G.win(12, 12, w, h);
+      const self = this;
+      ms.forEach(function (m, i) {
+        const y = 30 + i * 52;
+        const on = (self.phase === 'command' || self.phase === 'target'
+          || self.phase === 'spell' || self.phase === 'item') && self.actor === i;
+        const dead = m.alive === false || m.hp <= 0;
+        G.text(m.name, 30, y, {
+          size: 19,
+          color: dead ? '#7d6a6a' : on ? '#e8c85c' : '#f2f0e5',
+        });
+        if (on) G.cursor(18, y);
+        if (dead) { G.text('たおれている', 200, y, { size: 15, align: 'right', color: '#a4705c' }); return; }
+        if (m.poison) G.text('どく', 200, y - 2, { size: 14, align: 'right', color: '#8fd07f' });
+        // HP/MP バー
+        const bw = 176;
+        G.ctx.fillStyle = '#2a1c1c'; G.ctx.fillRect(30, y + 22, bw, 7);
+        G.ctx.fillStyle = m.hp <= m.maxhp * 0.25 ? '#e8664a' : '#4ec46e';
+        G.ctx.fillRect(30, y + 22, Math.max(0, (bw * m.hp) / m.maxhp) | 0, 7);
+        if (m.maxmp > 0) {
+          G.ctx.fillStyle = '#1c2440'; G.ctx.fillRect(30, y + 32, bw, 5);
+          G.ctx.fillStyle = '#5a9bd8';
+          G.ctx.fillRect(30, y + 32, Math.max(0, (bw * m.mp) / m.maxmp) | 0, 5);
+        }
+        G.text(m.hp + '/' + m.maxhp, 206, y + 16, { size: 14, align: 'right', color: '#b8c4d4' });
+        if (m.defending) G.text('まもり', 30, y + 38, { size: 13, color: '#8fd8ff' });
+      });
+    },
+
     drawCmd: function (dim) {
       const x = 14, y = G.H - 232, w = 250, h = 218;
       G.win(x, y, w, h);
       const col = dim ? '#7d8494' : '#f2f0e5';
+      if (this.members().length > 1) {
+        G.text(this.cur().name, x + w - 20, y + 8, { size: 16, align: 'right', color: '#e8c85c' });
+      }
       for (let i = 0; i < CMDS.length; i++) {
         const cy = y + 26 + i * 38;
         G.text(CMDS[i], x + 58, cy, { size: 22, color: col });

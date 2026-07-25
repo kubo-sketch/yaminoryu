@@ -8,23 +8,59 @@
   'use strict';
   const G = (window.G = window.G || {});
 
-  /* ---------------- 成長テーブル（Lv1〜12） ----------------
-     exp: そのレベルに上がるのに必要な累計経験値
-     ドラクエ1準拠で、序盤は3〜4戦で1レベル上がるように置く      */
-  G.LEVELS = [
-    /* Lv1  */ { exp: 0, hp: 22, mp: 0, atk: 5, def: 4 },
-    /* Lv2  */ { exp: 8, hp: 29, mp: 0, atk: 7, def: 6 },
-    /* Lv3  */ { exp: 20, hp: 36, mp: 6, atk: 10, def: 8, learn: 'hoimi' },
-    /* Lv4  */ { exp: 42, hp: 44, mp: 12, atk: 14, def: 11, learn: 'mera' },
-    /* Lv5  */ { exp: 76, hp: 53, mp: 18, atk: 18, def: 14, learn: 'rukani' },
-    /* Lv6  */ { exp: 124, hp: 62, mp: 25, atk: 22, def: 18, learn: 'rarihou' },
-    /* Lv7  */ { exp: 190, hp: 72, mp: 32, atk: 27, def: 22, learn: 'hyado' },
-    /* Lv8  */ { exp: 280, hp: 84, mp: 40, atk: 32, def: 26, learn: 'behoimi' },
-    /* Lv9  */ { exp: 400, hp: 96, mp: 48, atk: 38, def: 31 },
-    /* Lv10 */ { exp: 560, hp: 110, mp: 58, atk: 44, def: 36, learn: 'begirama' },
-    /* Lv11 */ { exp: 760, hp: 124, mp: 68, atk: 50, def: 41, learn: 'raidein' },
-    /* Lv12 */ { exp: 1000, hp: 140, mp: 80, atk: 57, def: 47 },
-  ];
+  /* ---------------- 成長テーブル（Lv1〜40） ----------------
+     Lv12 で頭打ちだと、終盤の敵を強くしても伸びしろが無い。
+     手書き配列をやめて式で生成し、上限を 40 まで引き上げる。
+     曲線は元の Lv1〜12 の手書き値をほぼ再現するよう係数を合わせてある
+     （Lv5: HP50/こうげき20、Lv10: HP108/こうげき48、Lv12: HP135/こうげき61）。 */
+  const MAX_LV = 40;
+  const SPELL_AT = {
+    3: 'hoimi', 4: 'mera', 5: 'rukani', 6: 'rarihou', 7: 'hyado',
+    8: 'behoimi', 10: 'begirama', 11: 'raidein',
+    14: 'behoma', 17: 'mahyado', 20: 'zaoral', 24: 'behomara',
+    28: 'ionazun', 33: 'merazoma', 37: 'zaorik',
+  };
+  G.LEVELS = (function () {
+    const t = [];
+    for (let lv = 1; lv <= MAX_LV; lv++) {
+      const n = lv - 1;
+      t.push({
+        exp: lv === 1 ? 0 : Math.round(Math.pow(n, 2.05) * 7),
+        hp: Math.round(15 + n * 7 + Math.pow(n, 1.8) * 0.6),
+        mp: lv < 3 ? 0 : Math.round((lv - 2) * 4 + Math.pow(lv - 2, 1.6) * 0.9),
+        atk: Math.round(3 + n * 3.5 + Math.pow(n, 1.7) * 0.35),
+        def: Math.round(2 + n * 2.9 + Math.pow(n, 1.65) * 0.3),
+        learn: SPELL_AT[lv],
+      });
+    }
+    return t;
+  })();
+  G.MAX_LV = MAX_LV;
+
+  /* ---------------- 仲間 ----------------
+     加入条件と、主人公とは別の役割を持たせる。
+     ユキ  … 回復と補助。打たれ弱いが蘇生を早く覚える
+     カイ  … 前衛。呪文は少ないが力と守りが高い                        */
+  G.ALLIES = {
+    yuki: {
+      name: 'ユキ', spr: 'girl',
+      // 主人公比：HP-25% / MP+40% / こうげき-30% / しゅび-15%
+      mul: { hp: 0.75, mp: 1.4, atk: 0.7, def: 0.85 },
+      spellAt: {
+        1: 'hoimi', 3: 'rukani', 5: 'hyado', 8: 'behoimi', 11: 'rarihou',
+        14: 'mahyado', 16: 'zaoral', 20: 'behomara', 26: 'behoma', 32: 'zaorik',
+      },
+      weapon: 1, armor: 1,
+      join: 'ミナの いもうと。\nかたきを うちたいのではない。\nただ しりたいのだと いう。',
+    },
+    kai: {
+      name: 'カイ', spr: 'soldier',
+      mul: { hp: 1.15, mp: 0.5, atk: 1.15, def: 1.2 },
+      spellAt: { 6: 'mera', 12: 'begirama', 22: 'raidein', 30: 'merazoma' },
+      weapon: 2, armor: 2,
+      join: 'みなとの わかい ふなのり。\nうみの そこを みたいのだと いう。',
+    },
+  };
 
   /* ---------------- 武器・防具 ---------------- */
   G.WEAPONS = [
@@ -114,6 +150,36 @@
     rukani: {
       name: 'ルカニ', mp: 3, battle: true, field: false, kind: 'debuff',
       power: function () { return 0; },
+    },
+    behoma: {
+      name: 'ベホマ', mp: 14, battle: true, field: true, kind: 'heal',
+      power: function () { return 9999; },
+    },
+    mahyado: {
+      name: 'マヒャド', mp: 12, battle: true, field: false, kind: 'attack', elem: 'ice',
+      all: true,
+      power: function () { return 58 + ((Math.random() * 22) | 0); },
+    },
+    zaoral: {
+      name: 'ザオラル', mp: 16, battle: true, field: true, kind: 'revive',
+      power: function () { return 0.5; },            // 最大HPの半分で復活
+    },
+    behomara: {
+      name: 'ベホマラー', mp: 20, battle: true, field: true, kind: 'healall',
+      power: function () { return 78 + ((Math.random() * 26) | 0); },
+    },
+    ionazun: {
+      name: 'イオナズン', mp: 26, battle: true, field: false, kind: 'attack', elem: null,
+      all: true,
+      power: function () { return 105 + ((Math.random() * 35) | 0); },
+    },
+    merazoma: {
+      name: 'メラゾーマ', mp: 22, battle: true, field: false, kind: 'attack', elem: 'fire',
+      power: function () { return 135 + ((Math.random() * 45) | 0); },
+    },
+    zaorik: {
+      name: 'ザオリク', mp: 30, battle: true, field: true, kind: 'revive',
+      power: function () { return 1.0; },            // 完全復活
     },
   };
 
