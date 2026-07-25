@@ -762,6 +762,16 @@
     px(g, 5, 7, P.wt3, 2, 1);
     return c;
   }
+  function tBonesGrass() {                          // 屋外（草の上）用
+    const c = mk(16, 16), g = c.getContext('2d');
+    baseGrass(g, 71);
+    px(g, 3, 12, P.shadow, 10, 2);
+    disc(g, 6, 9, 3, P.bn1); disc(g, 6, 8, 2, P.bn3);
+    px(g, 4, 9, P.gr0, 2, 2); px(g, 7, 9, P.gr0, 2, 2);
+    px(g, 10, 6, P.bn1, 5, 2); px(g, 10, 6, P.bn3, 5, 1);
+    px(g, 9, 11, P.bn1, 6, 2); px(g, 9, 11, P.bn3, 6, 1);
+    return c;
+  }
   function tBones() {
     const c = mk(16, 16), g = c.getContext('2d');
     px(g, 0, 0, P.cf2, 16, 16);
@@ -1760,7 +1770,7 @@
       bench: tBench(), cart: tCart(), flowerbed: tFlowerbed(), stone: tStone(),
       grave: tGrave(), crate: tCrate(),
       fireplace: tFireplace(), forge: tForge(), bookwall: tBookwall(), altar: tAltar(),
-      stalag: tStalag(), puddle: tPuddle(), bones: tBones(),
+      stalag: tStalag(), puddle: tPuddle(), bones: tBones(), bonesG: tBonesGrass(),
     };
 
     G.SPR = {

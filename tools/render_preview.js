@@ -359,6 +359,9 @@ renderMap('15_port.png', 'port', 11, 8);
 renderMap('16_port_shop.png', 'port', 5, 8);
 renderMap('13_field_river.png', 'field', 20, 14);
 renderMap('14_cave.png', 'cave1', 11, 5);
+renderMap('17_valley.png', 'valley', 13, 10);
+renderMap('18_ruin.png', 'ruin', 11, 10);
+renderMap('19_tower.png', 'tower1', 8, 8);
 
 /* --- 戦闘画面（敵の見え方） --- */
 function renderBattle(file, enemyId, indoor) {
@@ -420,5 +423,7 @@ console.log('\n戦闘画面:');
 renderBattle('20_battle_slime.png', 'slime', false);
 renderBattle('21_battle_skeleton.png', 'skeleton', true);
 renderBattle('22_battle_boss.png', 'boss', true);
+renderBattle('23_battle_elder.png', 'elderdragon', false);
+renderBattle('24_battle_wraith.png', 'wraith', true);
 
 console.log('\n完了。');
