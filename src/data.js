@@ -53,6 +53,17 @@
       weapon: 1, armor: 1,
       join: 'ミナの いもうと。\nかたきを うちたいのではない。\nただ しりたいのだと いう。',
     },
+    nagi: {
+      name: 'ナギ', spr: 'seer',
+      // 攻撃呪文に特化。打たれ弱いが、全体攻撃を誰より早く覚える
+      mul: { hp: 0.62, mp: 1.75, atk: 0.55, def: 0.7 },
+      spellAt: {
+        1: 'mera', 3: 'hyado', 6: 'begirama', 9: 'rukani', 12: 'raidein',
+        15: 'mahyado', 19: 'hoimi', 23: 'ionazun', 29: 'merazoma',
+      },
+      weapon: 1, armor: 1,
+      join: 'アルシオンの すえ。\nしずんだ みやこの ことを\nうたに して おぼえている。',
+    },
     kai: {
       name: 'カイ', spr: 'soldier',
       mul: { hp: 1.15, mp: 0.5, atk: 1.15, def: 1.2 },

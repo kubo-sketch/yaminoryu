@@ -1775,6 +1775,7 @@
       priest: makeChar({ hair: P.bn1, hairL: P.bn3, hairD: P.bn0, body: 'bn', hat: 'bn', belt: P.gd2 }),
       sage: makeChar({ hair: P.bn3, hairL: P.bn4, hairD: P.bn1, body: 'pp', hat: 'pp', beard: 1 }),
       soldier: makeChar({ hair: P.wd0, hairL: P.wd2, hairD: P.wd0, body: 'sl', belt: P.out }),
+      seer: makeChar({ hair: P.wt3, hairL: P.wt4, hairD: P.wt1, body: 'wt', hat: 'wt', belt: P.gd2 }),
     };
 
     G.ENEMY = {

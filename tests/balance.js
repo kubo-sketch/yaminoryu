@@ -49,6 +49,7 @@ function mkParty(lv, w, a, n) {
   const party = [mkPlayer(lv, w, a)];
   if (n >= 2) party.push(mkAlly('yuki', lv, w > 1 ? w - 1 : 1, a > 1 ? a - 1 : 1));
   if (n >= 3) party.push(mkAlly('kai', lv, w > 1 ? w - 1 : 1, a > 1 ? a - 1 : 1));
+  if (n >= 4) party.push(mkAlly('nagi', lv, w > 1 ? w - 1 : 1, a > 1 ? a - 1 : 1));
   return party;
 }
 const atkOf = (p) => p.baseAtk + WEAPONS[p.weapon].atk;
@@ -235,7 +236,7 @@ console.log('\n=== 人数別の勝率（N=2000）===');
 [['やみのりゅう', 'boss', [6, 7, 8, 9]], ['ガレン', 'galen', [9, 10, 11, 12]],
  ['はじまりの りゅう', 'elderdragon', [14, 17, 20, 23, 26]]].forEach(([label, id, lvs]) => {
   console.log('  ' + label);
-  [1, 2, 3].forEach((n) => {
+  [1, 2, 3, 4].forEach((n) => {
     const cells = lvs.map((lv) => {
       let win = 0;
       for (let i = 0; i < 2000; i++)
