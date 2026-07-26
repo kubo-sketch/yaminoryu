@@ -66,7 +66,18 @@ class Ctx {
     d[i + 3] = oa * 255;
   }
   fillRect(x, y, w, h) {
-    const c = parseColor(this.fillStyle);
+    const f = this.fillStyle;
+    // 線形グラデーション（UIの背景で多用するので、無視すると画面が白く抜ける）
+    if (f && f._grad) {
+      const span = (f.y1 - f.y0) || 1;
+      for (let j = 0; j < h; j++) {
+        const t = Math.max(0, Math.min(1, (y + j - f.y0) / span));
+        const c = f.at(t);
+        for (let i = 0; i < w; i++) this._blend(x + i, y + j, c[0], c[1], c[2], c[3]);
+      }
+      return;
+    }
+    const c = parseColor(f);
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this._blend(x + i, y + j, c[0], c[1], c[2], c[3]);
   }
   clearRect(x, y, w, h) {
@@ -120,10 +131,75 @@ class Ctx {
   // 使わないが呼ばれても落ちないように
   save() {} restore() {} translate() {} scale() {} beginPath() {} closePath() {}
   moveTo() {} lineTo() {} fill() {} stroke() {} strokeRect() {} clip() {}
-  arc() {} ellipse() {} rect() {} fillText() {} strokeText() {}
+  arc() {} rect() {} strokeText() {}
+  // 実フォントは描けないので、文字が占める矩形を薄く塗ってレイアウトを見せる
+  fillText(str, x, y) {
+    const s2 = String(str);
+    if (!s2.length) return;
+    const m = /(\d+)px/.exec(this.font || '');
+    const size = m ? +m[1] : 16;
+    // 日本語は全角なので size 幅、半角は約 0.55 倍で見積もる
+    let w = 0;
+    for (const ch of s2) w += /[\x00-\xff]/.test(ch) ? size * 0.55 : size;
+    const al = this.textAlign;
+    const x0 = al === 'center' ? x - w / 2 : al === 'right' ? x - w : x;
+    const c = this.fillStyle && this.fillStyle._grad ? [255, 255, 255, 255] : parseColor(this.fillStyle);
+    for (let i = 0; i < w; i++) {
+      this._blend(x0 + i, y + 3, c[0], c[1], c[2], c[3] * 0.55);
+      this._blend(x0 + i, y + size - 3, c[0], c[1], c[2], c[3] * 0.35);
+    }
+    for (let j = 3; j < size - 3; j += 3) {
+      this._blend(x0, y + j, c[0], c[1], c[2], c[3] * 0.4);
+      this._blend(x0 + w - 1, y + j, c[0], c[1], c[2], c[3] * 0.4);
+    }
+  }
+  ellipse(cx, cy, rx, ry) {
+    // 影や楕円も見えるようにしておく
+    const c = parseColor(this.fillStyle);
+    this._ell = { cx: cx, cy: cy, rx: rx, ry: ry, c: c };
+  }
+  fill() {
+    const e = this._ell; if (!e) return;
+    for (let y = -e.ry; y <= e.ry; y++)
+      for (let x = -e.rx; x <= e.rx; x++)
+        if ((x * x) / (e.rx * e.rx || 1) + (y * y) / (e.ry * e.ry || 1) <= 1)
+          this._blend(e.cx + x, e.cy + y, e.c[0], e.c[1], e.c[2], e.c[3]);
+    this._ell = null;
+  }
+  strokeRect(x, y, w, h) {
+    const c = parseColor(this.strokeStyle);
+    const t = Math.max(1, this.lineWidth | 0);
+    for (let i = 0; i < w; i++) for (let k = 0; k < t; k++) {
+      this._blend(x + i, y + k, c[0], c[1], c[2], c[3]);
+      this._blend(x + i, y + h - 1 - k, c[0], c[1], c[2], c[3]);
+    }
+    for (let j = 0; j < h; j++) for (let k = 0; k < t; k++) {
+      this._blend(x + k, y + j, c[0], c[1], c[2], c[3]);
+      this._blend(x + w - 1 - k, y + j, c[0], c[1], c[2], c[3]);
+    }
+  }
   measureText(s) { return { width: String(s).length * 8 }; }
-  createLinearGradient() { return { addColorStop() {} }; }
-  createRadialGradient() { return { addColorStop() {} }; }
+  createLinearGradient(x0, y0, x1, y1) {
+    const stops = [];
+    return {
+      _grad: true, x0: x0, y0: y0, x1: x1, y1: y1,
+      addColorStop: function (p, col) { stops.push([p, parseColor(col)]); stops.sort((a, b) => a[0] - b[0]); },
+      at: function (t) {
+        if (!stops.length) return [0, 0, 0, 0];
+        if (t <= stops[0][0]) return stops[0][1];
+        if (t >= stops[stops.length - 1][0]) return stops[stops.length - 1][1];
+        for (let i = 1; i < stops.length; i++) {
+          if (t <= stops[i][0]) {
+            const a = stops[i - 1], b = stops[i];
+            const k = (t - a[0]) / ((b[0] - a[0]) || 1);
+            return [0, 1, 2, 3].map((n) => Math.round(a[1][n] + (b[1][n] - a[1][n]) * k));
+          }
+        }
+        return stops[stops.length - 1][1];
+      },
+    };
+  }
+  createRadialGradient() { return { addColorStop() {}, _grad: false }; }
 }
 
 class Cv {
@@ -419,6 +495,52 @@ function renderBattle(file, enemyId, indoor) {
   const bytes = writePNG(path.join(OUT, file), cv);
   console.log('  ' + file + '  ' + d.name + '  ' + (bytes / 1024).toFixed(1) + 'KB');
 }
+/* --- 名前入力画面 --- */
+try {
+  ['engine.js', 'naming.js'].forEach((f) =>
+    new Function(fs.readFileSync(path.join(SRC, f), 'utf8'))());
+  const cv = new Cv(720, 624);
+  G.ctx = cv.getContext('2d');
+  G.W = 720; G.H = 624; G.time = 500;
+  G.audio = { se: () => {} };
+  G.player = { name: '' };
+  G.naming.name = 'ユウ';
+  G.naming.row = 0; G.naming.cx = 2; G.naming.cy = 3;
+  G.naming.draw();
+  const b = writePNG(path.join(OUT, '30_naming.png'), cv);
+  console.log('\n名前入力:\n  30_naming.png  ' + (b / 1024).toFixed(1) + 'KB');
+} catch (e) { console.log('\n名前入力の描画に失敗: ' + e.message); }
+
+/* --- 戦闘UI（パーティHUD＋コマンド）--- */
+try {
+  ['battle.js'].forEach((f) => new Function(fs.readFileSync(path.join(SRC, f), 'utf8'))());
+  const cv = new Cv(720, 624);
+  G.ctx = cv.getContext('2d');
+  G.W = 720; G.H = 624; G.TS = 16; G.S = 3; G.T = 48; G.time = 400;
+  G.audio = { se: () => {}, scene: () => {}, stopBgm: () => {} };
+  G.fx = { flash: () => {}, shake: () => {} };
+  G.msg = { show: () => {}, active: false, draw: () => {} };
+  G.MAPS.town.indoor = false;
+  const mk3 = (n, hp, mhp, mp, mmp, st) => Object.assign(
+    { name: n, hp: hp, maxhp: mhp, mp: mp, maxmp: mmp, alive: hp > 0 }, st || {});
+  G.party = [
+    mk3('ユウ', 84, 110, 30, 58),
+    mk3('ユキ', 22, 82, 60, 81, { poison: 1 }),
+    mk3('カイ', 0, 126, 4, 29),
+    mk3('ナギ', 40, 68, 90, 101, { para: 2 }),
+  ];
+  G.player = G.party[0];
+  G.battle.enemies = [{ def: G.ENEMIES.goblin, name: 'ゴブリン', hp: 10, maxhp: 18,
+    alive: true, sleep: 0, blink: 0, lunge: 0, fade: 0, bob: 0, defDown: 0, raged: false, poison: 0 }];
+  G.battle.actor = 0; G.battle.phase = 'command'; G.battle.cmd = 1;
+  G.battle.pops = []; G.battle.efx = []; G.battle.intro = 0; G.battle.isBoss = false;
+  G.ctx.fillStyle = '#101a2e'; G.ctx.fillRect(0, 0, 720, 624);
+  G.battle.drawParty();
+  G.battle.drawCmd(false);
+  const b = writePNG(path.join(OUT, '31_battle_ui.png'), cv);
+  console.log('\n戦闘UI:\n  31_battle_ui.png  ' + (b / 1024).toFixed(1) + 'KB');
+} catch (e) { console.log('\n戦闘UIの描画に失敗: ' + e.message); }
+
 console.log('\n戦闘画面:');
 renderBattle('20_battle_slime.png', 'slime', false);
 renderBattle('21_battle_skeleton.png', 'skeleton', true);

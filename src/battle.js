@@ -967,37 +967,43 @@
     },
 
     // パーティの状態（左上に縦積み。入力中の者を光らせる）
+    // 1人52pxだと4人で238pxになり、敵の描画域に食い込む。1行にまとめて詰める。
     drawParty: function () {
       const ms = this.members();
-      const w = 214, h = 30 + ms.length * 52;
+      const ROW = 38;
+      const w = 214, h = 22 + ms.length * ROW;
       G.win(12, 12, w, h);
       const self = this;
+      const active = self.phase === 'command' || self.phase === 'target'
+        || self.phase === 'spell' || self.phase === 'item';
       ms.forEach(function (m, i) {
-        const y = 30 + i * 52;
-        const on = (self.phase === 'command' || self.phase === 'target'
-          || self.phase === 'spell' || self.phase === 'item') && self.actor === i;
+        const y = 26 + i * ROW;
+        const on = active && self.actor === i;
         const dead = m.alive === false || m.hp <= 0;
-        G.text(m.name, 30, y, {
-          size: 19,
-          color: dead ? '#7d6a6a' : on ? '#e8c85c' : '#f2f0e5',
-        });
-        if (on) G.cursor(18, y);
-        if (dead) { G.text('たおれている', 200, y, { size: 15, align: 'right', color: '#a4705c' }); return; }
-        if (m.para) G.text('まひ', 200, y - 2, { size: 14, align: 'right', color: '#d8d0ff' });
-        else if (m.seal) G.text('ふうじ', 200, y - 2, { size: 14, align: 'right', color: '#c0a0ff' });
-        else if (m.poison) G.text('どく', 200, y - 2, { size: 14, align: 'right', color: '#8fd07f' });
-        // HP/MP バー
-        const bw = 176;
-        G.ctx.fillStyle = '#2a1c1c'; G.ctx.fillRect(30, y + 22, bw, 7);
-        G.ctx.fillStyle = m.hp <= m.maxhp * 0.25 ? '#e8664a' : '#4ec46e';
-        G.ctx.fillRect(30, y + 22, Math.max(0, (bw * m.hp) / m.maxhp) | 0, 7);
-        if (m.maxmp > 0) {
-          G.ctx.fillStyle = '#1c2440'; G.ctx.fillRect(30, y + 32, bw, 5);
-          G.ctx.fillStyle = '#5a9bd8';
-          G.ctx.fillRect(30, y + 32, Math.max(0, (bw * m.mp) / m.maxmp) | 0, 5);
+        if (on) {                                    // 入力中の行を帯で示す
+          G.ctx.fillStyle = 'rgba(232,200,92,0.13)';
+          G.ctx.fillRect(20, y - 4, w - 16, ROW - 4);
         }
-        G.text(m.hp + '/' + m.maxhp, 206, y + 16, { size: 14, align: 'right', color: '#b8c4d4' });
-        if (m.defending) G.text('まもり', 30, y + 38, { size: 13, color: '#8fd8ff' });
+        G.text(m.name, 30, y, {
+          size: 17, color: dead ? '#7d6a6a' : on ? '#e8c85c' : '#f2f0e5',
+        });
+        if (dead) { G.text('たおれている', 206, y + 1, { size: 14, align: 'right', color: '#a4705c' }); return; }
+        // 状態異常は名前の右に短く
+        const st = m.para ? ['まひ', '#d8d0ff'] : m.seal ? ['ふうじ', '#c0a0ff']
+          : m.poison ? ['どく', '#8fd07f'] : m.defending ? ['まもり', '#8fd8ff'] : null;
+        if (st) G.text(st[0], 96, y + 2, { size: 13, color: st[1] });
+        G.text(m.hp + '/' + m.maxhp, 206, y + 1, { size: 14, align: 'right', color: '#b8c4d4' });
+        // HP/MP バーは1行に細く重ねる
+        const bw = 176;
+        G.ctx.fillStyle = '#2a1c1c'; G.ctx.fillRect(30, y + 20, bw, 6);
+        G.ctx.fillStyle = m.hp <= m.maxhp * 0.25 ? '#e8664a' : '#4ec46e';
+        G.ctx.fillRect(30, y + 20, Math.max(0, (bw * m.hp) / m.maxhp) | 0, 6);
+        if (m.maxmp > 0) {
+          G.ctx.fillStyle = '#1c2440'; G.ctx.fillRect(30, y + 27, bw, 4);
+          G.ctx.fillStyle = '#5a9bd8';
+          G.ctx.fillRect(30, y + 27, Math.max(0, (bw * m.mp) / m.maxmp) | 0, 4);
+        }
+        if (on) G.cursor(16, y - 1);
       });
     },
 
