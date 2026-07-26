@@ -201,6 +201,23 @@ G.openShop('weapon'); step('shop', 3);
 tap('ok', 4); tap('ok', 4); tap('cancel', 4);
 ok('ぶきや（ぶき=' + G.WEAPONS[G.player.weapon].name + '）');
 
+console.log('\n--- ステータス画面：仲間の切り替え ---');
+reset();
+G.joinAlly && G.joinAlly('yuki');
+G.openMenu(); step('m', 3);
+tap('ok', 3);                                    // つよさ
+if (G.menu.page !== 'status') { console.log('✗ ステータスに入らない'); errors++; }
+else {
+  const first = G.menu.who;
+  tap('right', 3);
+  if ((G.party || []).length > 1 && G.menu.who === first) {
+    console.log('✗ 仲間に切り替えられない'); errors++;
+  } else ok('パーティ ' + (G.party || []).length + '人を切り替えできる');
+  tap('cancel', 3);
+}
+tap('cancel', 3);
+if (G.state !== 'field') { G.state = 'field'; }
+
 console.log('\n--- 宿屋 ---');
 reset();
 G.player.gold = 100; G.player.hp = 3; G.player.mp = 0;

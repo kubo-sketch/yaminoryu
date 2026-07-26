@@ -51,7 +51,7 @@
   const MAIN = ['つよさ', 'じゅもん', 'どうぐ', 'とじる'];
 
   G.menu = {
-    open: false, page: 'main', sel: 0, sub: 0, list: [],
+    open: false, page: 'main', sel: 0, sub: 0, list: [], who: 0,
 
     update: function (dt) {
       if (G.msg.active) { G.msg.update(dt); return; }
@@ -72,6 +72,12 @@
       }
 
       if (this.page === 'status') {
+        // 仲間のステータスも見られないと、育ち方が分からない
+        const ms = G.party || [G.player];
+        if (ms.length > 1) {
+          if (G.pressed('left')) { this.who = (this.who + ms.length - 1) % ms.length; G.audio.se('select'); }
+          if (G.pressed('right')) { this.who = (this.who + 1) % ms.length; G.audio.se('select'); }
+        }
         if (G.pressed('ok') || G.pressed('cancel')) { G.audio.se('cancel'); this.page = 'main'; }
         return;
       }
@@ -175,14 +181,23 @@
     },
 
     drawStatus: function () {
-      const p = G.player;
+      const ms = G.party || [G.player];
+      if (this.who >= ms.length) this.who = 0;
+      const p = ms[this.who];
+      const hero = p === G.player || !p.allyId;
       const w = 560, h = 480, x = (G.W - w) / 2, y = 60;
       G.win(x, y, w, h);
       G.text(p.name, x + 36, y + 26, { size: 28 });
-      G.text(G.rankName(), x + w - 36, y + 30, { size: 20, align: 'right', color: '#e8c34a' });
+      if (hero) G.text(G.rankName(), x + w - 36, y + 30, { size: 20, align: 'right', color: '#e8c34a' });
+      else G.text('なかま', x + w - 36, y + 30, { size: 18, align: 'right', color: '#8fd8ff' });
+      // 誰を見ているか＋切り替えの案内
+      if (ms.length > 1) {
+        G.text('◀ ' + (this.who + 1) + '/' + ms.length + ' ▶', G.W / 2, y + 30,
+          { size: 17, align: 'center', color: '#b8c4d4' });
+      }
 
       const nextExp = p.lv < G.LEVELS.length ? G.LEVELS[p.lv].exp - p.exp : 0;
-      const rows = [
+      const rows = hero ? [
         ['レベル', p.lv],
         ['HP', p.hp + ' / ' + p.maxhp],
         ['MP', p.mp + ' / ' + p.maxmp],
@@ -194,13 +209,34 @@
         ['ぶき', G.WEAPONS[p.weapon].name],
         ['よろい', G.ARMORS[p.armor].name],
         ['たおした まもの', p.kills],
+      ] : [
+        ['レベル', p.lv],
+        ['HP', p.hp + ' / ' + p.maxhp],
+        ['MP', p.mp + ' / ' + p.maxmp],
+        ['ちから', G.atkOf(p) + '（' + p.baseAtk + '＋' + G.WEAPONS[p.weapon].atk + '）'],
+        ['みのまもり', G.defOf(p) + '（' + p.baseDef + '＋' + G.ARMORS[p.armor].def + '）'],
+        ['ぶき', G.WEAPONS[p.weapon].name],
+        ['よろい', G.ARMORS[p.armor].name],
+        ['じょうたい', (p.alive === false || p.hp <= 0) ? 'たおれている'
+          : p.para ? 'まひ' : p.seal ? 'ふうじ' : p.poison ? 'どく' : 'げんき'],
+        ['おぼえた じゅもん', (p.spells || []).length + 'こ'],
       ];
       rows.forEach(function (r, i) {
         const cy = y + 76 + i * 34;
         G.text(r[0], x + 40, cy, { size: 20, color: '#b8c4d4' });
         G.text(String(r[1]), x + w - 40, cy, { size: 21, align: 'right' });
       });
-      G.text('（ボタンで もどる）', x + w / 2, y + h - 38, { size: 17, align: 'center', color: '#8d94a4' });
+      // 覚えている呪文を一覧で出す（何ができるか一目で分かるように）
+      const sp = (p.spells || []).map(function (id) { return G.SPELLS[id].name; });
+      if (sp.length) {
+        const sy = y + 76 + rows.length * 34 + 6;
+        G.text('じゅもん', x + 40, sy, { size: 17, color: '#b8c4d4' });
+        const line1 = sp.slice(0, 5).join('　'), line2 = sp.slice(5, 10).join('　');
+        G.text(line1, x + 150, sy, { size: 17 });
+        if (line2) G.text(line2, x + 150, sy + 24, { size: 17 });
+      }
+      G.text(ms.length > 1 ? '（やじるしで きりかえ　ボタンで もどる）' : '（ボタンで もどる）',
+        x + w / 2, y + h - 34, { size: 16, align: 'center', color: '#8d94a4' });
     },
   };
 
@@ -318,6 +354,40 @@
       G.win(G.W - 220, 40, 200, 62);
       G.text('もちきん', G.W - 200, 54, { size: 17, color: '#b8c4d4' });
       G.text(G.player.gold + 'G', G.W - 40, 72, { size: 22, align: 'right', color: '#e8c34a' });
+
+      // 選んでいる品の性能。今の装備との差が見えないと買う判断ができない
+      const sel = this.list[this.sel];
+      if (sel && !sel.leave) {
+        const bx = 24, by = 390, bw = 660, bh = 118;
+        G.win(bx, by, bw, bh);
+        G.text(sel.name, bx + 28, by + 20, { size: 22, color: '#e8c85c' });
+        G.text(sel.price + 'G', bx + bw - 28, by + 22, { size: 20, align: 'right',
+          color: G.player.gold >= sel.price ? '#f2f0e5' : '#e8664a' });
+        const p = G.player;
+        let line = '', diff = 0, now = '';
+        if (sel.g.type === 'weapon') {
+          const w = G.WEAPONS[sel.g.id], cur = G.WEAPONS[p.weapon];
+          line = 'こうげき ＋' + w.atk;
+          now = 'いま：' + cur.name + '（＋' + cur.atk + '）';
+          diff = w.atk - cur.atk;
+        } else if (sel.g.type === 'armor') {
+          const a = G.ARMORS[sel.g.id], cur = G.ARMORS[p.armor];
+          line = 'しゅび ＋' + a.def;
+          now = 'いま：' + cur.name + '（＋' + cur.def + '）';
+          diff = a.def - cur.def;
+        } else {
+          const d = G.ITEMS[sel.g.id];
+          line = { yakusou: 'HPを 22〜30 かいふくする', dokukesi: 'どくを なおす',
+            seisui: 'しばらく まものが よってこない', tubasa: 'はじまりの村へ もどる' }[sel.g.id] || d.name;
+          now = 'もっている かず：' + (p.items[sel.g.id] || 0);
+        }
+        G.text(line, bx + 28, by + 54, { size: 20 });
+        if (diff) {
+          G.text((diff > 0 ? '＋' : '−') + Math.abs(diff), bx + 260, by + 54,
+            { size: 22, color: diff > 0 ? '#4ec46e' : '#e8664a' });
+        }
+        G.text(now, bx + 28, by + 84, { size: 17, color: '#b8c4d4' });
+      }
 
       if (G.msg.active) G.msg.draw();
       if (G.modal.active) G.modal.draw();

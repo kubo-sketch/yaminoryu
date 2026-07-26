@@ -541,6 +541,37 @@ try {
   console.log('\n戦闘UI:\n  31_battle_ui.png  ' + (b / 1024).toFixed(1) + 'KB');
 } catch (e) { console.log('\n戦闘UIの描画に失敗: ' + e.message); }
 
+/* --- メニュー・店・タイトル・エンディング --- */
+try {
+  ['ui.js'].forEach((f) => new Function(fs.readFileSync(path.join(SRC, f), 'utf8'))());
+  const shot = function (file, fn) {
+    const cv = new Cv(720, 624);
+    G.ctx = cv.getContext('2d');
+    G.ctx.fillStyle = '#16223a'; G.ctx.fillRect(0, 0, 720, 624);
+    fn();
+    const b = writePNG(path.join(OUT, file), cv);
+    console.log('  ' + file + '  ' + (b / 1024).toFixed(1) + 'KB');
+  };
+  G.player = {
+    name: 'ユウ', lv: 18, hp: 172, maxhp: 214, mp: 88, maxmp: 131,
+    baseAtk: 74, baseDef: 59, exp: 2210, gold: 3480,
+    weapon: 4, armor: 4, kills: 137,
+    items: { yakusou: 8, dokukesi: 3, seisui: 2, tubasa: 1 },
+    spells: ['hoimi', 'mera', 'rukani', 'rarihou', 'hyado', 'behoimi', 'venom', 'begirama'],
+  };
+  G.party = [G.player];
+  G.flags = { bossDead: 0, galenDead: 0, elderDead: 0, phantomDead: 0, q: {}, read: {} };
+  G.field = { draw: function () {} };                 // メニューは背景にフィールドを描くので殺す
+  console.log('\nUI画面:');
+  shot('32_menu_status.png', function () { G.menu.page = 'status'; G.menu.draw(); });
+  shot('33_menu_item.png', function () { G.menu.page = 'main'; G.menu.sel = 2; G.menu.openList('item'); G.menu.draw(); });
+  shot('34_shop.png', function () {
+    G.shop.id = 'weapon'; G.shop.def = G.SHOPS.weapon; G.shop.sel = 2; G.shop.buildList();
+    G.msg.active = false; G.modal.active = false;
+    G.shop.draw();
+  });
+} catch (e) { console.log('\nUI画面の描画に失敗: ' + e.message); }
+
 console.log('\n戦闘画面:');
 renderBattle('20_battle_slime.png', 'slime', false);
 renderBattle('21_battle_skeleton.png', 'skeleton', true);
