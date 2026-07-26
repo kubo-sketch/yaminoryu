@@ -74,7 +74,7 @@ let pendingTimers = [];
 let clock = 0;
 
 /* ---------------- ロード ---------------- */
-const FILES = ['sprites.js', 'data.js', 'maps.js', 'engine.js', 'audio.js', 'cutscene.js', 'field.js', 'battle.js', 'ui.js', 'main.js'];
+const FILES = ['sprites.js', 'data.js', 'maps.js', 'engine.js', 'audio.js', 'naming.js', 'cutscene.js', 'field.js', 'battle.js', 'ui.js', 'main.js'];
 FILES.forEach((f) => {
   try {
     new Function(fs.readFileSync(path.join(ROOT, f), 'utf8'))();
@@ -137,8 +137,27 @@ console.log('\n--- タイトル画面 ---');
 step('title draw', 5);
 if (!errors) ok('タイトル描画');
 
-console.log('\n--- ニューゲーム ---');
+console.log('\n--- 名前入力 ---');
 tap('ok', 2);
+step('naming', 5);
+if (G.state !== 'naming') { console.log('✗ 名前入力に入らない: ' + G.state); errors++; }
+else {
+  // かな表で1文字入れてから、機能列の「けってい」で確定する
+  for (let i = 0; i < 3; i++) tap('right', 2);   // 「え」あたりへ
+  tap('ok', 2);
+  const typed = G.naming.name;
+  for (let i = 0; i < 5; i++) tap('down', 2);    // 下端 → さらに下で機能列へ
+  if (G.naming.row !== 1) { console.log('✗ 機能列へ移れない'); errors++; }
+  G.naming.cx = 4;                                // 「けってい」
+  tap('ok', 3);
+  step('fade', 200);
+  if (!typed) { console.log('✗ 文字が入力されない'); errors++; }
+  step('fade', 200);
+  if (G.state !== 'field') { console.log('✗ 名前入力から始まらない: ' + G.state); errors++; }
+  else ok('名前「' + G.player.name + '」で開始');
+}
+
+console.log('\n--- ニューゲーム ---');
 // フェード完了まで回す
 step('fade', 400);
 if (G.state !== 'field') { console.log('✗ field に入れていない: state=' + G.state); errors++; }
@@ -278,6 +297,32 @@ if (G.player.hp !== G.player.maxhp) { console.log('✗ 復活時にHPが全快�
 if (G.player.gold !== goldBefore - Math.floor(goldBefore / 2)) { console.log('✗ ゴールド半減が効いていない: ' + G.player.gold); errors++; }
 if (G.player.map !== 'town') { console.log('✗ 村に戻っていない: ' + G.player.map); errors++; }
 ok('ゲームオーバー → 復活（' + G.player.map + ' HP=' + G.player.hp + '/' + G.player.maxhp + ' G=' + goldBefore + '→' + G.player.gold + '）');
+
+console.log('\n--- セーブデータの持ち出し／取り込み ---');
+{
+  G.player.gold = 4321; G.player.name = 'テスト';
+  G.saveGame();
+  const code = G.exportSave();
+  if (!code) { console.log('✗ 書き出せない'); errors++; }
+  else {
+    ok('書き出し ' + code.length + '文字');
+    // 壊れたコードは弾く
+    if (!G.importSave('こわれたコード')) { console.log('✗ 不正なコードを受け入れてしまう'); errors++; }
+    else ok('不正なコードを弾く');
+    if (!G.importSave('')) { console.log('✗ 空のコードを受け入れてしまう'); errors++; }
+    else ok('空のコードを弾く');
+    // 正しいコードは通り、中身が戻る
+    G.player.gold = 0;
+    const err2 = G.importSave(code);
+    if (err2) { console.log('✗ 正しいコードが通らない: ' + err2); errors++; }
+    else {
+      G.loadGame();
+      if (G.player.gold !== 4321 || G.player.name !== 'テスト') {
+        console.log('✗ 取り込んだ内容が戻らない: ' + G.player.gold + '/' + G.player.name); errors++;
+      } else ok('取り込み（' + G.player.name + ' ' + G.player.gold + 'G）');
+    }
+  }
+}
 
 console.log('\n--- セーブ／ロード往復 ---');
 G.player.gold = 777; G.player.x = 12; G.player.y = 8; G.player.map = 'town';

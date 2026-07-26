@@ -56,13 +56,70 @@
   };
 
   /* =====================================================================
+     セーブデータの持ち出し／取り込み
+     ---------------------------------------------------------------------
+     サーバーを持たずに端末間で続きを渡すための仕組み。
+     JSON を Base64 にして文字列で受け渡す。
+     ===================================================================== */
+  G.exportSave = function () {
+    const raw = safeLS(function () { return localStorage.getItem(SAVE_KEY); }, null);
+    if (!raw) return null;
+    try {
+      // 日本語を含むので、UTF-8 → Base64 の順に通す
+      return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(raw)));
+    } catch (e) { return null; }
+  };
+  G.importSave = function (code) {
+    if (!code) return 'コードが からです。';
+    try {
+      const bin = atob(code.replace(/\s/g, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const raw = new TextDecoder().decode(bytes);
+      const d = JSON.parse(raw);
+      if (!d || !d.player || !d.at) return 'このコードは よみこめません。';
+      safeLS(function () { localStorage.setItem(SAVE_KEY, raw); }, null);
+      return null;                                   // 成功
+    } catch (e) { return 'このコードは よみこめません。'; }
+  };
+
+  /* ---------------- 受け渡しパネル（HTML側のUI） ---------------- */
+  G.openDataPanel = function () {
+    const el = document.getElementById('dataPanel');
+    const ta = document.getElementById('dpText');
+    const msg = document.getElementById('dpMsg');
+    if (!el || !ta) return;
+    const code = G.exportSave();
+    ta.value = code || '';
+    msg.textContent = code ? 'この コードを コピーして ほぞんしてください。'
+      : 'まだ ぼうけんの きろくが ありません。';
+    msg.className = 'dp-msg' + (code ? '' : ' err');
+    el.hidden = false;
+    G.dataPanelOpen = true;
+  };
+  G.closeDataPanel = function () {
+    const el = document.getElementById('dataPanel');
+    if (el) el.hidden = true;
+    G.dataPanelOpen = false;
+  };
+
+  /* =====================================================================
      ニューゲーム
      ===================================================================== */
-  G.newGame = function () {
+  // 「はじめから」で最初に名前を決める
+  G.startNewGame = function () {
+    G.naming.open(function (name) {
+      G.fx.fadeOut(function () {
+        G.newGame(name);
+        G.fx.fadeIn(null, 0.005);
+      }, 0.006);
+    });
+  };
+  G.newGame = function (name) {
     const L = G.LEVELS[0];
     G.flags = { toldByElder: 0, gateOpen: 0, bossDead: 0, galenDead: 0, shipReady: 0, valleyOpen: 0, elderDead: 0, phantomDead: 0, chests: {}, q: {}, read: {} };
     G.player = {
-      name: 'ユウ',
+      name: name || 'ユウ',
       lv: 1, hp: L.hp, maxhp: L.hp, mp: L.mp, maxmp: L.mp,
       baseAtk: L.atk, baseDef: L.def,
       exp: 0, gold: 24,
@@ -377,7 +434,7 @@
   G.title = {
     sel: 0, t: 0,
     items: function () {
-      return G.hasSave() ? ['つづきから', 'はじめから'] : ['はじめから'];
+      return G.hasSave() ? ['つづきから', 'はじめから', 'データ'] : ['はじめから', 'データ'];
     },
     update: function (dt) {
       this.t += dt;
@@ -388,14 +445,16 @@
         G.audio.se('confirm');
         const pick = list[this.sel];
         const self = this;
-        G.fx.fadeOut(function () {
-          if (pick === 'つづきから') {
-            if (!G.loadGame()) G.newGame();
-          } else {
-            G.newGame();
-          }
-          G.fx.fadeIn(null, 0.005);
-        }, 0.006);
+        if (pick === 'つづきから') {
+          G.fx.fadeOut(function () {
+            if (!G.loadGame()) G.startNewGame();
+            G.fx.fadeIn(null, 0.005);
+          }, 0.006);
+        } else if (pick === 'データ') {
+          G.openDataPanel();
+        } else {
+          G.startNewGame();                          // 名前入力へ
+        }
       }
     },
     draw: function () {
@@ -455,8 +514,12 @@
 
     G.fx.update(dt);
 
+    // 受け渡しパネルを開いている間は、下のゲームに入力を通さない
+    if (G.dataPanelOpen) { G.clearEdges(); requestAnimationFrame(frame); return; }
+
     switch (G.state) {
       case 'title': G.title.update(dt); break;
+      case 'naming': G.naming.update(dt); break;
       case 'field':
         G.player.playMs += dt;
         G.field.update(dt);
@@ -471,6 +534,7 @@
     const shifted = G.fx.pre();
     switch (G.state) {
       case 'title': G.title.draw(); break;
+      case 'naming': G.naming.draw(); break;
       case 'field': G.field.draw(); break;
       case 'menu': G.menu.draw(); break;
       case 'shop': G.shop.draw(); break;
@@ -488,6 +552,16 @@
      起動
      ===================================================================== */
   window.addEventListener('DOMContentLoaded', function () {
+    // Safari は7日間サイトを訪れないと localStorage を消す（ITP）。
+    // 永続化を要求しておくと、対象から外れる可能性が上がる。
+    // 拒否されても保存自体は動くので、失敗は無視してよい。
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persisted().then(function (already) {
+          if (!already) navigator.storage.persist();
+        });
+      }
+    } catch (e) { /* 未対応ブラウザ */ }
     G.initCanvas();
     G.initSprites();
     G.buildMaps();
@@ -506,6 +580,38 @@
         mb.classList.toggle('off', m);
       });
     }
+    // 受け渡しパネル
+    const dp = {
+      copy: document.getElementById('dpCopy'),
+      imp: document.getElementById('dpImport'),
+      close: document.getElementById('dpClose'),
+      ta: document.getElementById('dpText'),
+      msg: document.getElementById('dpMsg'),
+    };
+    if (dp.copy) {
+      dp.copy.addEventListener('click', function () {
+        dp.ta.select();
+        let done = false;
+        try { done = document.execCommand('copy'); } catch (e) { done = false; }
+        if (!done && navigator.clipboard) {
+          navigator.clipboard.writeText(dp.ta.value).then(function () {
+            dp.msg.textContent = 'コピーしました。'; dp.msg.className = 'dp-msg';
+          });
+          return;
+        }
+        dp.msg.textContent = done ? 'コピーしました。' : 'えらべる じょうたいで コピーしてください。';
+        dp.msg.className = 'dp-msg' + (done ? '' : ' err');
+      });
+      dp.imp.addEventListener('click', function () {
+        const err = G.importSave(dp.ta.value);
+        if (err) { dp.msg.textContent = err; dp.msg.className = 'dp-msg err'; return; }
+        dp.msg.textContent = 'とりこみました。よみこみなおします……';
+        dp.msg.className = 'dp-msg';
+        setTimeout(function () { location.reload(); }, 700);
+      });
+      dp.close.addEventListener('click', function () { G.closeDataPanel(); });
+    }
+
     // セーブ削除（デバッグ用・長押し）
     const rb = document.getElementById('reset');
     if (rb) {
