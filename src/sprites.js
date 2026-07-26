@@ -870,10 +870,11 @@
     const b = o.body;                               // 'bl' 'gn' 're' などのキー
     const b1 = P[b + 1], b2 = P[b + 2], b3 = P[b + 3], b0 = P[b + 0];
     const boot = o.boot || P.wd1;
+    // frame 0=直立 / 1,2=踏み出し。棒立ちの絵を持たないと、
+    // 止まっているときも歩きかけの中途半端な姿勢のままになる
     const bob = frame ? 1 : 0;
-
-    // 足（交互に踏み出す）
-    const la = frame ? 0 : 1, ra = frame ? 1 : 0;
+    const la = frame === 2 ? 1 : 0, ra = frame === 1 ? 1 : 0;
+    const lam = frame === 1 ? 1 : 0, ram = frame === 2 ? 1 : 0;   // 腕は足と逆に振る
     px(g, 4, 19 + la, boot, 3, 5 - la);
     px(g, 9, 19 + ra, boot, 3, 5 - ra);
     px(g, 4, 19 + la, P.wd3, 1, 5 - la);
@@ -889,10 +890,10 @@
     px(g, 3, 17 + bob, o.belt || P.wd1, 10, 2);
     px(g, 3, 17 + bob, P.gd3, 10, 1);
     // 腕
-    px(g, 2, 13 + bob, b1, 2, 5); px(g, 12, 13 + bob, b1, 2, 5);
-    px(g, 2, 13 + bob, b2, 1, 5);
-    px(g, 2, 18, P.sk2, 2, 2); px(g, 12, 18, P.sk2, 2, 2);
-    px(g, 2, 18, P.sk3, 1, 1);
+    px(g, 2, 13 + bob + lam, b1, 2, 5); px(g, 12, 13 + bob + ram, b1, 2, 5);
+    px(g, 2, 13 + bob + lam, b2, 1, 5);
+    px(g, 2, 18 + lam, P.sk2, 2, 2); px(g, 12, 18 + ram, P.sk2, 2, 2);
+    px(g, 2, 18 + lam, P.sk3, 1, 1);
     // 首
     px(g, 6, 11, P.sk1, 4, 2);
     px(g, 6, 11, P.sk2, 4, 1);
@@ -959,11 +960,15 @@
     const boot = o.boot || P.wd1;
     const bob = frame ? 1 : 0;
 
-    // 足を前後に大きく開く
-    if (frame) {
+    // 足。0=そろえる（直立・通過）／1,2=前後に開く。1と2で前に出す足を替える
+    if (frame === 1) {
       px(g, 2, 19, boot, 5, 5); px(g, 9, 19, boot, 5, 5);
       px(g, 2, 19, P.wd3, 5, 1); px(g, 9, 19, P.wd3, 5, 1);
       px(g, 2, 23, P.wd0, 5, 1); px(g, 9, 23, P.wd0, 5, 1);
+    } else if (frame === 2) {
+      px(g, 1, 20, boot, 5, 4); px(g, 8, 19, boot, 6, 5);
+      px(g, 1, 20, P.wd3, 5, 1); px(g, 8, 19, P.wd3, 6, 1);
+      px(g, 1, 23, P.wd0, 5, 1); px(g, 8, 23, P.wd0, 6, 1);
     } else {
       px(g, 4, 19, boot, 5, 5); px(g, 8, 20, boot, 5, 4);
       px(g, 4, 19, P.wd3, 5, 1);
@@ -977,7 +982,7 @@
     px(g, 4, 17 + bob, o.belt || P.wd1, 8, 2);
     px(g, 4, 17 + bob, P.gd3, 8, 1);
     // 腕は1本だけ振る
-    const ax = frame ? 2 : 4;
+    const ax = frame === 1 ? 2 : frame === 2 ? 6 : 4;
     px(g, ax, 13 + bob, b1, 3, 5);
     px(g, ax, 13 + bob, b2, 1, 5);
     px(g, ax, 18, P.sk2, 3, 2);
@@ -1012,10 +1017,11 @@
   }
 
   function makeChar(o) {
-    const down = [charFront(o, false, 0), charFront(o, false, 1)];
-    const up = [charFront(o, true, 0), charFront(o, true, 1)];
-    const left = [charSide(o, 0), charSide(o, 1)];
-    return [down, left, [flipX(left[0]), flipX(left[1])], up];
+    // 各向き3コマ [直立, 踏み出しA, 踏み出しB]。歩きは 0→A→0→B で回す
+    const down = [0, 1, 2].map(function (f) { return charFront(o, false, f); });
+    const up = [0, 1, 2].map(function (f) { return charFront(o, true, f); });
+    const left = [0, 1, 2].map(function (f) { return charSide(o, f); });
+    return [down, left, left.map(flipX), up];
   }
 
   /* =====================================================================

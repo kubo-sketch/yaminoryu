@@ -92,9 +92,10 @@
       // 歩行中
       if (p.moving) {
         p.moveT += dt;
-        p.frame = p.moveT < MOVE_MS / 2 ? 1 : 0;
+        p.frame = p.moveT < MOVE_MS / 2 ? (p.step2 ? 2 : 1) : 0;
         if (p.moveT >= MOVE_MS) {
           p.moving = false; p.moveT = 0; p.frame = 0;
+          p.step2 = !p.step2;                     // 次の一歩は逆の足から
           p.x += DX[p.dir]; p.y += DY[p.dir];
           p.steps++;
           if (p.holy > 0) p.holy--;

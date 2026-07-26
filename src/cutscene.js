@@ -122,7 +122,7 @@
         const a = this.actor(s.who);
         if (!a) { this.nextStep(); return; }
         const k = Math.min(1, this.t / WALK_MS);
-        a.frame = k < 0.5 ? 1 : 0;
+        a.frame = k < 0.5 ? (a.step2 ? 2 : 1) : 0;
         // 見た目の位置を補間（プレイヤーは rx/ry、NPCはタイル単位なので都度確定）
         if (a === G.player) {
           a.moving = true; a.moveT = k * WALK_MS; a.dir = s.dir;
@@ -130,7 +130,7 @@
         if (k >= 1) {
           a.x += DX[s.dir]; a.y += DY[s.dir];
           if (a === G.player) { a.moving = false; a.moveT = 0; }
-          a.frame = 0;
+          a.frame = 0; a.step2 = !a.step2;
           s._left--;
           this.t = 0;
           G.audio.se('step');

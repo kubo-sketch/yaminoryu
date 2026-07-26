@@ -59,6 +59,7 @@
       G.party.forEach(function (m) { m.alive = m.hp > 0; m.defending = false; m.para = 0; m.seal = 0; });
       this.queue = []; this.pops = []; this.efx = []; this.hitstop = 0;
       this.intro = 1;                                // 1→0 で敵がせり上がる
+      this.winT = 0;
       G.state = 'battle';
       G.audio.se('encounter');
       G.audio.scene(null, isBoss ? 'boss' : 'battle');
@@ -557,6 +558,7 @@
       this.phase = 'over';
       G.audio.stopBgm();
       G.audio.se('win');
+      this.winT = 1;                                 // 勝ちどきの開始
       let exp = 0, gold = 0;
       this.enemies.forEach(function (e) { exp += e.def.exp; gold += e.def.gold; });
       p.exp += exp; p.gold += gold;
@@ -599,6 +601,7 @@
       // ヒットストップ：当たった瞬間だけ時間を止めて打撃感を出す
       if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
       if (this.intro > 0) this.intro = Math.max(0, this.intro - dt / 460);
+      if (this.winT > 0) this.winT += dt;
       for (let i = this.efx.length - 1; i >= 0; i--) {
         this.efx[i].t += dt;
         if (this.efx[i].t > this.efx[i].dur) this.efx.splice(i, 1);
@@ -863,6 +866,29 @@
       }
 
       // ダメージ表示
+      // 勝ちどき。敵が消えた場所に出てきて跳ねる。
+      // 前方視点なので普段は味方の姿が出ない。勝った瞬間だけ顔を見せる
+      if (this.winT > 0) {
+        const ms = (G.party || [G.player]).filter(function (m) { return m.hp > 0; });
+        const sp = ms.length > 3 ? 116 : 132;
+        const x0 = G.W / 2 - ((ms.length - 1) * sp) / 2;
+        const app = Math.min(1, this.winT / 240);
+        for (let i = 0; i < ms.length; i++) {
+          const m = ms[i];
+          const set = !m.allyId ? (G.heroSprite ? G.heroSprite() : G.SPR.hero)
+            : (G.SPR[m.spr] || G.SPR.villager);
+          const ph = this.winT / 300 - i * 0.3;
+          const jump = ph > 0 ? Math.max(0, Math.sin(ph * Math.PI) * 26) : 0;
+          const w = 84, h = 126, bx = x0 + i * sp, by = 402 - h + (1 - app) * 70;
+          c.globalAlpha = 0.28 * app; c.fillStyle = '#000000';
+          c.beginPath(); c.ellipse(bx, 404, 26 - jump * 0.35, 7, 0, 0, Math.PI * 2); c.fill();
+          c.globalAlpha = app;
+          c.drawImage(set[0][jump > 3 ? 1 : 0], 0, 0, 16, G.CH,
+            (bx - w / 2) | 0, (by - jump) | 0, w, h);
+          c.globalAlpha = 1;
+        }
+      }
+
       this.pops.forEach(function (p) {
         const k = p.t / 800;
         const y = p.y - k * 46;

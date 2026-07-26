@@ -371,10 +371,17 @@ const charNames = Object.keys(G.SPR);
 const chars = [];
 charNames.forEach((k) => {
   const set = G.SPR[k];
-  for (let d = 0; d < 4; d++) for (let f = 0; f < 2; f++) chars.push(set[d][f]);
+  for (let d = 0; d < 4; d++) for (let f = 0; f < 3; f++) chars.push(set[d][f]);
 });
-sheet('02_chars.png', chars, { scale: 5, cols: 8, cell: 24 });
-console.log('     ' + charNames.join(' / ') + '（各行=1キャラ／下左右上×2コマ）');
+sheet('02_chars.png', chars, { scale: 5, cols: 12, cell: 24 });
+console.log('     ' + charNames.join(' / ') + '（各行=1キャラ／下左右上×3コマ）');
+// 歩行サイクルを実際に回る順（直立→A→直立→B）で並べて確認する
+{
+  const cyc = [];
+  [0, 1, 2, 3].forEach((d) => [0, 1, 0, 2].forEach((f) => cyc.push(G.SPR.hero[d][f])));
+  sheet('03_walkcycle.png', cyc, { scale: 9, cols: 4, cell: 24 });
+  console.log('     03_walkcycle.png  主人公の歩行4コマ（下/左/右/上）');
+}
 
 /* --- 敵 --- */
 const enemyNames = Object.keys(G.ENEMY);
@@ -570,13 +577,28 @@ try {
   G.player = G.party[0];
   G.battle.enemies = [{ def: G.ENEMIES.goblin, name: 'ゴブリン', hp: 10, maxhp: 18,
     alive: true, sleep: 0, blink: 0, lunge: 0, fade: 0, bob: 0, defDown: 0, raged: false, poison: 0 }];
-  G.battle.actor = 0; G.battle.phase = 'command'; G.battle.cmd = 1;
+  G.battle.actor = 0; G.battle.phase = 'command'; G.battle.cmd = 1; G.battle.winT = 0;
   G.battle.pops = []; G.battle.efx = []; G.battle.intro = 0; G.battle.isBoss = false;
   G.ctx.fillStyle = '#101a2e'; G.ctx.fillRect(0, 0, 720, 624);
   G.battle.drawParty();
   G.battle.drawCmd(false);
   const b = writePNG(path.join(OUT, '31_battle_ui.png'), cv);
   console.log('\n戦闘UI:\n  31_battle_ui.png  ' + (b / 1024).toFixed(1) + 'KB');
+  // 勝ちどき
+  const cv2 = new Cv(720, 624);
+  G.ctx = cv2.getContext('2d');
+  G.party.forEach(function (m) { if (m.hp <= 0) { m.hp = 30; m.alive = true; } });
+  G.party[1].spr = 'girl'; G.party[1].allyId = 'yuki';
+  G.party[2].spr = 'soldier'; G.party[2].allyId = 'kai';
+  G.party[3].spr = 'seer'; G.party[3].allyId = 'nagi';
+  G.battle.winT = 220;
+  G.battle.enemies = [];
+  G.player.map = 'town';
+  G.MAPS.town.indoor = false;
+  G.msg = { show: () => {}, active: false, draw: () => {} };
+  G.battle.draw();
+  const b2 = writePNG(path.join(OUT, '38_battle_win.png'), cv2);
+  console.log('  38_battle_win.png  ' + (b2 / 1024).toFixed(1) + 'KB');
 } catch (e) { console.log('\n戦闘UIの描画に失敗: ' + e.message); }
 
 /* --- メニュー・店・タイトル・エンディング --- */
