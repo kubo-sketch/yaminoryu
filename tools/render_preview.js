@@ -129,9 +129,24 @@ class Ctx {
     }
   }
   // 使わないが呼ばれても落ちないように
-  save() {} restore() {} translate() {} scale() {} beginPath() {} closePath() {}
-  moveTo() {} lineTo() {} fill() {} stroke() {} strokeRect() {} clip() {}
-  arc() {} rect() {} strokeText() {}
+  save() {} restore() {} translate() {} scale() {} clip() {} stroke() {} strokeText() {}
+  // 多角形パス。山並みなどはこれで描かれているので、無視すると絵が嘘になる
+  beginPath() { this._pts = []; this._ell = null; }
+  moveTo(x, y) { (this._pts = this._pts || []).push([x, y]); }
+  lineTo(x, y) { (this._pts = this._pts || []).push([x, y]); }
+  closePath() {}
+  rect(x, y, w, h) {
+    this._pts = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  }
+  arc(cx, cy, r, a0, a1) {
+    const p = (this._pts = this._pts || []);
+    const s0 = a0 === undefined ? 0 : a0, s1 = a1 === undefined ? Math.PI * 2 : a1;
+    const n = Math.max(8, Math.ceil(Math.abs(s1 - s0) * r / 3));
+    for (let i = 0; i <= n; i++) {
+      const a = s0 + (s1 - s0) * (i / n);
+      p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+  }
   // 実フォントは描けないので、文字が占める矩形を薄く塗ってレイアウトを見せる
   fillText(str, x, y) {
     const s2 = String(str);
@@ -159,12 +174,35 @@ class Ctx {
     this._ell = { cx: cx, cy: cy, rx: rx, ry: ry, c: c };
   }
   fill() {
-    const e = this._ell; if (!e) return;
-    for (let y = -e.ry; y <= e.ry; y++)
-      for (let x = -e.rx; x <= e.rx; x++)
-        if ((x * x) / (e.rx * e.rx || 1) + (y * y) / (e.ry * e.ry || 1) <= 1)
-          this._blend(e.cx + x, e.cy + y, e.c[0], e.c[1], e.c[2], e.c[3]);
-    this._ell = null;
+    const e = this._ell;
+    if (e) {
+      for (let y = -e.ry; y <= e.ry; y++)
+        for (let x = -e.rx; x <= e.rx; x++)
+          if ((x * x) / (e.rx * e.rx || 1) + (y * y) / (e.ry * e.ry || 1) <= 1)
+            this._blend(e.cx + x, e.cy + y, e.c[0], e.c[1], e.c[2], e.c[3]);
+      this._ell = null;
+      return;
+    }
+    // 走査線で多角形を塗る
+    const p = this._pts;
+    if (!p || p.length < 3) return;
+    const col = this.fillStyle && this.fillStyle._grad ? [255, 255, 255, 255] : parseColor(this.fillStyle);
+    let y0 = Infinity, y1 = -Infinity;
+    for (const q of p) { if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]; }
+    y0 = Math.max(0, Math.floor(y0)); y1 = Math.min(this.cv.height - 1, Math.ceil(y1));
+    for (let y = y0; y <= y1; y++) {
+      const xs = [];
+      for (let i = 0, n = p.length; i < n; i++) {
+        const a = p[i], b = p[(i + 1) % n];
+        if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y))
+          xs.push(a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0]));
+      }
+      xs.sort((m, n2) => m - n2);
+      for (let i = 0; i + 1 < xs.length; i += 2)
+        for (let x = Math.ceil(xs[i]); x < xs[i + 1]; x++)
+          this._blend(x, y, col[0], col[1], col[2], col[3]);
+    }
+    this._pts = null;
   }
   strokeRect(x, y, w, h) {
     const c = parseColor(this.strokeStyle);
@@ -570,6 +608,33 @@ try {
     G.msg.active = false; G.modal.active = false;
     G.shop.draw();
   });
+  // タイトルとエンディングは main.js の中。localStorage 等の外殻を偽装して読み込む
+  try {
+    global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+    try { Object.defineProperty(global, 'navigator',
+      { value: { storage: { persisted: () => Promise.resolve(false) } }, configurable: true }); } catch (_) {}
+    global.document = { addEventListener: () => {}, getElementById: () => null,
+      createElement: () => ({ getContext: () => null, style: {} }) };
+    global.window = global; global.G = G; global.requestAnimationFrame = () => {};
+    global.addEventListener = () => {};
+    new Function(fs.readFileSync(path.join(SRC, 'main.js'), 'utf8'))();
+    shot('35_title.png', function () { G.title.sel = 0; G.title.draw(); });
+    shot('37_ending_party.png', function () {
+      G.ending.t = 9000; G.ending.done = true; G.msg.active = false;
+      G.party = [G.player,
+        { allyId: 'yuki', spr: 'girl', name: 'ユキ' },
+        { allyId: 'kai', spr: 'soldier', name: 'カイ' },
+        { allyId: 'nagi', spr: 'seer', name: 'ナギ' }];
+      G.endingDraw();
+      G.party = [G.player];
+    });
+    shot('36_ending.png', function () {
+      G.ending.t = 9000; G.ending.done = true;
+      G.flags.bossDead = 1; G.flags.lore = 1;
+      G.msg.active = false;
+      G.endingDraw();
+    });
+  } catch (e) { console.log('  タイトル/エンディング: ' + e.message); }
 } catch (e) { console.log('\nUI画面の描画に失敗: ' + e.message); }
 
 console.log('\n戦闘画面:');

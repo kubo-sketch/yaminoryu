@@ -405,6 +405,7 @@
   };
   G.endingDraw = function () {
     const c = G.ctx;
+    const HZ = 466;                                  // 地平線
     // 朝焼け
     const g = c.createLinearGradient(0, 0, 0, G.H);
     g.addColorStop(0, '#2a2050');
@@ -412,19 +413,82 @@
     g.addColorStop(0.75, '#e8a04a');
     g.addColorStop(1, '#f6d38a');
     c.fillStyle = g; c.fillRect(0, 0, G.W, G.H);
-    // 山並み
-    c.fillStyle = '#3a2b46';
-    for (let i = 0; i < 5; i++) {
-      const bx = i * 180 - 60, bw = 260, bh = 120 + (i % 3) * 40;
-      c.beginPath();
-      c.moveTo(bx, 470); c.lineTo(bx + bw / 2, 470 - bh); c.lineTo(bx + bw, 470);
-      c.closePath(); c.fill();
+
+    // 消えのこった星。上ほど濃く、朝の空に溶けていく
+    c.fillStyle = '#f2f0e5';
+    for (let i = 0; i < 44; i++) {
+      const x = (i * 173) % G.W, y = (i * 61) % 210;
+      c.globalAlpha = 0.55 * (1 - y / 210) * (0.4 + 0.6 * Math.abs(Math.sin(G.time / 1100 + i)));
+      c.fillRect(x, y, 2, 2);
     }
-    c.fillStyle = '#241a2e';
-    c.fillRect(0, 466, G.W, G.H - 466);
-    // 主人公の後ろ姿
-    const img = (G.heroSprite ? G.heroSprite() : G.SPR.hero)[3][0];
-    c.drawImage(img, 0, 0, 16, G.CH, (G.W / 2 - 48) | 0, 332, 96, 144);
+    c.globalAlpha = 1;
+
+    // 昇る朝日。中央に置くと仲間の真後ろに隠れるので左寄りに、
+    // 山から出きる高さまで上げる。光暈は薄く多く重ねないと輪に見える
+    const sx = 236, sy = HZ + 30 - Math.min(150, G.ending.t * 0.02);
+    c.fillStyle = '#ffd98a';
+    for (let i = 14; i >= 1; i--) {
+      c.globalAlpha = 0.032;
+      c.beginPath(); c.arc(sx, sy, 56 + i * 13, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+    c.fillStyle = '#ffe7a8';
+    c.beginPath(); c.arc(sx, sy, 56, 0, Math.PI * 2); c.fill();
+
+    // 山並み。二段に重ねる。左右対称の二等辺三角形が並ぶと図形に見えるので、
+    // 頂点をずらし、稜線の途中に段をつけて崩す
+    const ridge = function (pts, col) {
+      c.fillStyle = col;
+      for (let i = 0; i < pts.length; i++) {
+        const x = pts[i][0], h = pts[i][1], w = pts[i][2], k = pts[i][3];
+        c.beginPath();
+        c.moveTo(x - w, HZ);
+        c.lineTo(x - w * 0.42 + k * 0.3, HZ - h * 0.46);
+        c.lineTo(x - w * 0.16 + k * 0.5, HZ - h * 0.62);   // 肩の段
+        c.lineTo(x + k, HZ - h);
+        c.lineTo(x + w * 0.34 + k * 0.4, HZ - h * 0.5);
+        c.lineTo(x + w * 0.66, HZ - h * 0.34);             // 反対側の段
+        c.lineTo(x + w, HZ);
+        c.closePath(); c.fill();
+      }
+    };
+    ridge([[70, 176, 168, 34], [255, 138, 146, -28], [432, 202, 188, 46], [618, 148, 158, -22]], '#5d4160');
+    ridge([[-10, 94, 148, 26], [138, 120, 138, -30], [302, 82, 128, 18],
+           [452, 126, 152, -34], [604, 90, 130, 24], [734, 118, 142, -20]], '#33253f');
+
+    // 鳥。空が広いままだと止め絵に見える
+    c.fillStyle = '#2a2038';
+    for (let i = 0; i < 6; i++) {
+      const bx = ((i * 137 + G.ending.t * 0.018) % (G.W + 90)) - 45;
+      const by = 116 + (i % 3) * 44 + Math.sin(G.ending.t / 640 + i) * 5;
+      const w = 3 + (i % 2);
+      c.fillRect(bx - w * 2, by, w, 2); c.fillRect(bx - w, by - 2, w, 2);
+      c.fillRect(bx + w, by - 2, w, 2); c.fillRect(bx + w * 2, by, w, 2);
+    }
+
+    // 地面。手前ほど暗くし、地平線ぎわに朝日の色を残す
+    const gg = c.createLinearGradient(0, HZ, 0, G.H);
+    gg.addColorStop(0, '#4a3244');
+    gg.addColorStop(0.35, '#2a1e30');
+    gg.addColorStop(1, '#1b1424');
+    c.fillStyle = gg; c.fillRect(0, HZ, G.W, G.H - HZ);
+    c.fillStyle = '#8a5e52'; c.fillRect(0, HZ, G.W, 2);
+
+    // 一緒に来た仲間と並んで朝日を見る。ひとりで終わらせない
+    const ms = (G.party && G.party.length ? G.party : [G.player]);
+    const sp = ms.length > 3 ? 100 : 112;   // 詰めすぎると一塊の的に見える
+    const x0 = G.W / 2 - ((ms.length - 1) * sp) / 2;
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const set = (!m.allyId ? (G.heroSprite ? G.heroSprite() : G.SPR.hero)
+        : (G.SPR[m.spr] || G.SPR.villager));
+      const img = set[3][Math.floor(G.time / 520 + i) % 2];
+      const cx = x0 + i * sp, w = 80, h = 120;
+      c.globalAlpha = 0.32; c.fillStyle = '#000000';
+      c.beginPath(); c.ellipse(cx, HZ + 10, 25, 7, 0, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+      c.drawImage(img, 0, 0, 16, G.CH, (cx - w / 2) | 0, HZ + 12 - h, w, h);
+    }
     if (G.msg.active) G.msg.draw();
   };
 
@@ -474,25 +538,38 @@
       }
       c.globalAlpha = 1;
 
-      // 背後に竜のシルエット
+      // 背後に竜のシルエット。96×96 に描き直したので全体を使う
+      // （0,0,64,64 のままだと左上の 44% だけを引き伸ばしていた）
       const boss = G.ENEMY.boss;
-      c.globalAlpha = 0.22;
-      c.drawImage(boss, 0, 0, 64, 64, (G.W - 460) / 2, 120, 460, 460);
+      c.globalAlpha = 0.24;
+      c.drawImage(boss, 0, 0, boss.width, boss.height, (G.W - 540) / 2, 76, 540, 540);
       c.globalAlpha = 1;
 
       // タイトル
       G.text('やみのりゅう', G.W / 2, 96, { size: 62, align: 'center', color: '#f2f0e5' });
       G.text('— はじまりの村と ほらあなの ぬし —', G.W / 2, 178, { size: 19, align: 'center', color: '#b8a06a' });
 
-      // 主人公
-      c.drawImage(G.SPR.hero[0][Math.floor(G.time / 400) % 2], 0, 0, 16, G.CH, G.W / 2 - 36, 264, 72, 108);
+      // 手前の稜線。立つ場所がないと主人公が宙に浮いて見える
+      const gy = 508;
+      c.fillStyle = '#070910';
+      for (let x = 0; x < G.W; x += 6) {
+        const h = Math.sin(x * 0.016) * 11 + Math.sin(x * 0.057) * 5;
+        c.fillRect(x, gy + h, 6, G.H - gy - h);
+      }
+
+      // 主人公。竜を見上げる後ろ姿にして、大きさの差を見せる。
+      // 中央寄りだと竜の翼と重なって頭から角が生えたように見えるので左端に置く
+      const hx = 112;
+      const hy = gy + Math.sin(hx * 0.016) * 11 + Math.sin(hx * 0.057) * 5;
+      c.drawImage(G.SPR.hero[3][Math.floor(G.time / 480) % 2], 0, 0, 16, G.CH,
+        hx - 32, (hy - 94) | 0, 64, 96);
 
       // メニュー
       const list = this.items();
-      const bw = 300, bx = (G.W - bw) / 2, by = 404;
-      G.win(bx, by, bw, 40 + list.length * 44);
+      const bw = 300, bx = (G.W - bw) / 2, by = 344;
+      G.win(bx, by, bw, 34 + list.length * 42);
       for (let i = 0; i < list.length; i++) {
-        const cy = by + 28 + i * 44;
+        const cy = by + 24 + i * 42;
         G.text(list[i], G.W / 2, cy, { size: 24, align: 'center' });
         if (this.sel === i) G.cursor(bx + 46, cy);
       }
